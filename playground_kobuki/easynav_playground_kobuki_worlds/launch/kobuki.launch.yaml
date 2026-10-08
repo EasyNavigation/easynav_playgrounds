@@ -1,0 +1,84 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Spawns one Kobuki in a running Gazebo. With a namespace, topics, TF frames
+# and the tf topic itself are namespaced (/<ns>/tf, <ns>/base_link...).
+
+launch:
+- arg: {name: name, default: kobuki, description: Model name used in Gazebo}
+- arg: {name: namespace, default: '', description: 'Namespace for nodes, topics and TF frames'}
+- arg: {name: x, default: '0.0'}
+- arg: {name: y, default: '0.0'}
+- arg: {name: z, default: '0.0'}
+- arg: {name: R, default: '0.0'}
+- arg: {name: P, default: '0.0'}
+- arg: {name: Y, default: '0.0'}
+- arg: {name: lidar, default: 'true', description: Enable the lidar}
+- arg: {name: lidar_range, default: '3.0', description: Maximum lidar range (m)}
+- arg: {name: camera, default: 'false', description: Enable the RGBD camera}
+- arg: {name: structure, default: 'true', description: Mount the hexagon plates and poles}
+- arg: {name: use_sim_time, default: 'true'}
+
+# URDF frame/topic prefix: "<ns>/" or empty
+- let:
+    name: prefix
+    value: "$(eval '\"$(var namespace)/\" if \"$(var namespace)\" else \"\"')"
+
+- group:
+  - push_ros_namespace: {namespace: $(var namespace)}
+  - set_remap: {from: /tf, to: tf}
+  - set_remap: {from: /tf_static, to: tf_static}
+
+  - node:
+      pkg: robot_state_publisher
+      exec: robot_state_publisher
+      output: screen
+      param:
+      - name: robot_description
+        type: str
+        value: >-
+          $(command 'xacro $(find-pkg-share easynav_playground_kobuki_description)/urdf/kobuki.urdf.xacro
+          gazebo:=true lidar:=$(var lidar) lidar_range:=$(var lidar_range)
+          camera:=$(var camera) structure:=$(var structure)
+          namespace:=$(var prefix) tf_namespace:=$(var prefix)')
+      - {name: use_sim_time, value: $(var use_sim_time)}
+
+  - node:
+      pkg: ros_gz_sim
+      exec: create
+      output: screen
+      args: >-
+        -name $(var name) -topic robot_description
+        -x $(var x) -y $(var y) -z $(var z) -R $(var R) -P $(var P) -Y $(var Y)
+
+  - node:
+      pkg: ros_gz_bridge
+      exec: parameter_bridge
+      name: bridge_ros_gz
+      output: screen
+      param:
+      - {name: config_file, value: $(find-pkg-share easynav_playground_kobuki_worlds)/config/bridge/kobuki_bridge.yaml}
+      - {name: expand_gz_topic_names, value: true}
+      - {name: use_sim_time, value: $(var use_sim_time)}
+
+  - node:
+      if: $(var camera)
+      pkg: ros_gz_bridge
+      exec: parameter_bridge
+      name: bridge_ros_gz_camera
+      output: screen
+      param:
+      - {name: config_file, value: $(find-pkg-share easynav_playground_kobuki_worlds)/config/bridge/kobuki_camera_bridge.yaml}
+      - {name: expand_gz_topic_names, value: true}
+      - {name: use_sim_time, value: $(var use_sim_time)}

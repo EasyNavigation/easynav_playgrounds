@@ -1,0 +1,79 @@
+<?xml version="1.0"?>
+<robot name="summit_xl" xmlns:xacro="http://wiki.ros.org/xacro">
+
+
+  <!-- ***************** -->
+  <!-- Imported elements -->
+  <!-- ***************** -->
+
+  <!-- Import RB1 base elements (base + wheels) -->
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/bases/summit_xl_base.urdf.xacro"/>
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/wheels/rubber_wheel/rubber_wheel.urdf.xacro"/>
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/structures/sensor_support/structure_gps.urdf.xacro"/>
+
+  <!-- Import the sensors it carries -->
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors.urdf.xacro"/>
+
+
+  <!-- ***************** -->
+  <!-- Global parameters -->
+  <!-- ***************** -->
+  <xacro:property name="PI" value="3.1415926535897931"/>
+
+  <!-- Wheel parameters -->
+  <!-- x,y,z in translation from base_link to the center of the wheel -->
+  <xacro:property name="wheel_offset_x" value="0.229"/>
+  <xacro:property name="wheel_offset_y" value="0.235"/>
+  <xacro:property name="wheel_offset_z" value="0.0"/>
+
+  <!-- Flag to select the high or low quality model -->
+  <xacro:property name="hq" value="true"/>
+  <xacro:arg name="robot_id" default="summit_xl"/>
+  <xacro:arg name="prefix" default=""/>
+  <xacro:arg name="robot_ns" default=""/>
+  <xacro:arg name="use_sim_time" default="true"/>
+
+
+  <!-- *************** -->
+  <!-- Robots Elements -->
+  <!-- *************** -->
+
+  <!-- Summit XL -->
+  <xacro:summit_xl_base prefix="$(arg prefix)" publish_bf="true" hq="${hq}"/>
+  <!--xacro:gazebo_colors /-->
+
+  <!-- WHEELS -->
+  <xacro:rubber_wheel prefix="front_right_" parent="$(arg prefix)base_link" reflect="true" hq="${hq}">
+    <origin xyz="${wheel_offset_x} -${wheel_offset_y} ${wheel_offset_z}" rpy="0 0 ${PI}"/>
+  </xacro:rubber_wheel>
+  <xacro:rubber_wheel prefix="front_left_" parent="$(arg prefix)base_link" reflect="true" hq="${hq}">
+    <origin xyz="${wheel_offset_x} ${wheel_offset_y} ${wheel_offset_z}" rpy="0 0 0"/>
+  </xacro:rubber_wheel>
+  <xacro:rubber_wheel prefix="rear_left_" parent="$(arg prefix)base_link" reflect="true" hq="${hq}">
+    <origin xyz="-${wheel_offset_x} ${wheel_offset_y} ${wheel_offset_z}" rpy="0 0 0"/>
+  </xacro:rubber_wheel>
+  <xacro:rubber_wheel prefix="rear_right_" parent="$(arg prefix)base_link" reflect="true" hq="${hq}">
+    <origin xyz="-${wheel_offset_x} -${wheel_offset_y} ${wheel_offset_z}" rpy="0 0 ${PI}"/>
+  </xacro:rubber_wheel>
+
+  <!-- SENSORS -->
+  <xacro:sensor_robosense_helios node_namespace="$(arg robot_ns)" frame_prefix="$(arg prefix)front_laser" parent="$(arg prefix)base_link" simulation="true" gpu="true">
+      <origin xyz="-0.11808 0.0 0.38509" rpy="0 0 0"/>
+  </xacro:sensor_robosense_helios>
+  <xacro:sensor_stereolabs_zed2 node_namespace="$(arg robot_ns)" frame_prefix="$(arg prefix)front_camera_" parent="$(arg prefix)base_link" simulation="true">
+      <origin xyz="0.324 0.012 0.172" rpy="0 0 0"/>
+  </xacro:sensor_stereolabs_zed2>
+  <xacro:structure_mastil_gps prefix="$(arg prefix)gps_" parent="$(arg prefix)base_link">
+    <origin xyz="-0.24 0.095 0.25" rpy="0 0 0"/>
+  </xacro:structure_mastil_gps>
+  <xacro:sensor_gps  node_namespace="$(arg robot_ns)" frame_prefix="$(arg prefix)gps_" parent="$(arg prefix)base_link" simulation="true">
+    <origin xyz="-0.24 0.095 0.625" rpy="0 0 0"/>
+  </xacro:sensor_gps>
+  <xacro:sensor_imu ns="$(arg robot_ns)" prefix="$(arg prefix)imu" parent="$(arg prefix)base_link">
+    <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+  </xacro:sensor_imu>
+
+    <!-- Gazebo ROS control plugins -->
+    <xacro:include filename="$(find easynav_playground_summit_description)/urdf/ros2_control.urdf.xacro"/>
+    <xacro:ros2_control/>
+</robot>

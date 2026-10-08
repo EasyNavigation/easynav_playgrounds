@@ -1,0 +1,121 @@
+# Copyright (c) 2025 Yohan Prakoso
+# Copyright (c) 2026 Francisco Martín Rico
+# SPDX-License-Identifier: MIT AND Apache-2.0
+
+launch:
+- arg:
+    name: world
+    default: maze2
+    description: Gazebo world
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg:
+    name: use_sim_time
+    default: 'true'
+    description: Use simulation time
+- arg:
+    name: robot
+    default: 3w_v2
+    description: Robot model to spawn
+    choice: [{value: 3w}, {value: 3w_v2}, {value: 4w}, {value: 5w}, {value: 6w}]
+
+# Gazebo needs these paths to find meshes and worlds
+- set_env:
+    name: GZ_SIM_RESOURCE_PATH
+    value: $(find-pkg-share easynav_playground_omni_description)/..:$(find-pkg-share easynav_playground_omni_worlds)/worlds
+- set_env:
+    name: OMNI_ROBOT_MODEL
+    value: $(var robot)
+
+- node:
+    pkg: robot_state_publisher
+    exec: robot_state_publisher
+    output: screen
+    param:
+    - name: robot_description
+      type: str
+      value: $(command 'xacro $(find-pkg-share easynav_playground_omni_description)/urdf/$(var robot)/main.urdf.xacro')
+    - name: use_sim_time
+      value: $(var use_sim_time)
+
+- set_env:
+    name: GZ_SIM_SYSTEM_PLUGIN_PATH
+    value: $(env GZ_SIM_SYSTEM_PLUGIN_PATH ''):$(env LD_LIBRARY_PATH '')
+
+# Gazebo is started without a shell (gz_sim.launch.py uses one) and the GUI client runs
+# directly ("gz sim -g" runs it as a child that outlives a SIGTERM), so the launch's
+# signals reach both: on shutdown, no server or GUI window is left behind.
+- executable:
+    name: gz_server
+    cmd: gz sim -r -s -v 4 $(var world).sdf
+    output: screen
+- executable:
+    if: $(var gui)
+    name: gz_gui
+    cmd: $(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client
+    output: screen
+
+- node:
+    pkg: ros_gz_sim
+    exec: create
+    output: screen
+    args: -topic robot_description -name $(var robot) -z 0.1
+
+- node:
+    pkg: ros_gz_bridge
+    exec: parameter_bridge
+    param:
+    - name: config_file
+      value: $(find-pkg-share easynav_playground_omni_worlds)/config/gz_bridge/gz_bridge.yaml
+
+# One controller spawner per robot model
+- node:
+    if: $(equals $(var robot) 3w)
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_omni_description)/config/controller_configs/controller_config_3w.yaml
+      joint_state_broadcaster wheel1_controller wheel2_controller wheel3_controller
+      camera_servo_controller
+- node:
+    if: $(equals $(var robot) 3w_v2)
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_omni_description)/config/controller_configs/controller_config_3w_v2.yaml
+      joint_state_broadcaster wheel1_controller wheel2_controller wheel3_controller
+- node:
+    if: $(equals $(var robot) 4w)
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_omni_description)/config/controller_configs/controller_config_4w.yaml
+      joint_state_broadcaster wheel1_controller wheel2_controller wheel3_controller
+      wheel4_controller
+- node:
+    if: $(equals $(var robot) 5w)
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_omni_description)/config/controller_configs/controller_config_5w.yaml
+      joint_state_broadcaster wheel1_controller wheel2_controller wheel3_controller
+      wheel4_controller wheel5_controller
+- node:
+    if: $(equals $(var robot) 6w)
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_omni_description)/config/controller_configs/controller_config_6w.yaml
+      joint_state_broadcaster wheel1_controller wheel2_controller wheel3_controller
+      wheel4_controller wheel5_controller wheel6_controller
+
+- node:
+    pkg: easynav_playground_omni_worlds
+    exec: kinematics
+    param:
+    - name: use_sim_time
+      value: $(var use_sim_time)

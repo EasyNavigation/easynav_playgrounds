@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">  
+  <xacro:macro name="base_layer_gazebo prefix">
+    <gazebo reference="${prefix}_base_layer_link">
+      <selfCollide>false</selfCollide>
+      <mu1 value="0.05" />
+      <mu2 value="0.05" />
+    </gazebo>
+  </xacro:macro>
+</robot>

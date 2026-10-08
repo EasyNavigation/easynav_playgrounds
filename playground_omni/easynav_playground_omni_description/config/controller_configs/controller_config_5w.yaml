@@ -1,0 +1,54 @@
+# Copyright (c) 2025 Yohan Prakoso
+# Copyright (c) 2026 Francisco Martín Rico
+# SPDX-License-Identifier: MIT AND Apache-2.0
+
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+    wheel1_controller:
+      type: forward_command_controller/ForwardCommandController
+    wheel2_controller:
+      type: forward_command_controller/ForwardCommandController
+    wheel3_controller:
+      type: forward_command_controller/ForwardCommandController
+    wheel4_controller:
+      type: forward_command_controller/ForwardCommandController
+    wheel5_controller:
+      type: forward_command_controller/ForwardCommandController
+
+wheel1_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - omni_wheel_joint_1
+    interface_name: velocity
+
+wheel2_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - omni_wheel_joint_2
+    interface_name: velocity
+
+wheel3_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - omni_wheel_joint_3
+    interface_name: velocity
+
+wheel4_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - omni_wheel_joint_4
+    interface_name: velocity
+
+wheel5_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - omni_wheel_joint_5
+    interface_name: velocity

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_kobuki_description</name>
+  <version>0.5.0</version>
+  <description>Kobuki (Turtlebot 2) robot description for the EasyNav playgrounds: URDF and meshes, from kobuki_ros.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- The Kobuki model (urdf/, meshes/): Copyright (c) 2012, Yujin Robot, from kobuki_ros -->
+  <license file="LICENSE">BSD-3-Clause</license>
+  <author>Yujin Robot</author>
+  <!-- Adapted for this simulation (paths to this package) -->
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

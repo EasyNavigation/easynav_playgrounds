@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="camera_gazebo_v0" params="prefix">
+    <gazebo reference="${prefix}_camera_link">
+      <sensor type="depth" name="${prefix}_depth_camera">
+        <gz_frame_id>${prefix}_camera_link</gz_frame_id>
+        <pose>-0.005 0 0 0 0 0</pose>
+        <topic>depth</topic>
+        <update_rate>10.0</update_rate>
+        <camera name="${prefix}_camera">
+          <camera_info_topic>depth/camera_info</camera_info_topic>
+          <pose>0 0 0 0 0 0</pose>
+          <horizontal_fov>1.5</horizontal_fov>
+          <image>
+            <width>320</width>
+            <height>240</height>
+            <!-- <format>R8G8B8</format> -->
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>300</far>
+          </clip>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.007</stddev>
+          </noise>
+        </camera>
+      </sensor>
+      <sensor name="${prefix}_camera" type="camera">
+        <gz_frame_id>${prefix}_camera_link</gz_frame_id>
+        <pose>-0.005 0 0 0 0 0</pose>
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <visualize>true</visualize>
+        <topic>camera</topic>
+        <camera>
+          <camera_info_topic>/camera_info</camera_info_topic>
+          <horizontal_fov>1.5</horizontal_fov>
+          <image>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.01</near>
+            <far>300</far>
+          </clip>
+        </camera>
+        <!-- <depth_camera>
+          <output>depths</output>
+        </depth_camera> -->
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

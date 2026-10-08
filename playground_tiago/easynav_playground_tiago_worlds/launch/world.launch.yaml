@@ -1,0 +1,53 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Gazebo server (+ optional client) and the /clock bridge, no robots.
+
+launch:
+- arg:
+    name: world
+    default: $(find-pkg-share easynav_playground_tiago_worlds)/worlds/small_house.world
+    description: Gazebo world file
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+
+# Gazebo finds the house models here
+- set_env:
+    name: GZ_SIM_RESOURCE_PATH
+    value: $(find-pkg-share easynav_playground_tiago_worlds)/models:$(env GZ_SIM_RESOURCE_PATH '')
+
+- set_env:
+    name: GZ_SIM_SYSTEM_PLUGIN_PATH
+    value: $(env GZ_SIM_SYSTEM_PLUGIN_PATH ''):$(env LD_LIBRARY_PATH '')
+
+# Gazebo is started without a shell (gz_sim.launch.py uses one) and the GUI client runs
+# directly ("gz sim -g" runs it as a child that outlives a SIGTERM), so the launch's
+# signals reach both: on shutdown, no server or GUI window is left behind.
+- executable:
+    name: gz_server
+    cmd: gz sim -r -s $(var world)
+    output: screen
+- executable:
+    if: $(var gui)
+    name: gz_gui
+    cmd: $(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client
+    output: screen
+
+- node:
+    pkg: ros_gz_bridge
+    exec: parameter_bridge
+    name: bridge_ros_gz_clock
+    output: screen
+    param:
+    - {name: config_file, value: $(find-pkg-share easynav_playground_tiago_worlds)/config/bridge/clock_bridge.yaml}
+    - {name: use_sim_time, value: true}

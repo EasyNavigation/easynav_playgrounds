@@ -1,0 +1,48 @@
+# ROS <-> Gazebo bridge for the TIAGo sensors (from PAL's tiago_bringup/config/bridge).
+# IMU and odometry come from ros2_control (imu_sensor_broadcaster, mobile_base_controller);
+# /clock is bridged by world.launch.yaml.
+
+# Base laser (SICK TIM571)
+- ros_topic_name: "scan_raw"
+  gz_topic_name: "/scan_raw"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "scan_raw/points"
+  gz_topic_name: "/scan_raw/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS
+
+# Head RGBD camera (Orbbec Astra)
+- ros_topic_name: "head_front_camera/rgb/image_raw"
+  gz_topic_name: "/head_front_camera/image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/rgb/camera_info"
+  gz_topic_name: "/head_front_camera/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/depth_registered/image_raw"
+  gz_topic_name: "/head_front_camera/depth_image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/depth_registered/points"
+  gz_topic_name: "/head_front_camera/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS
+
+# Base sonars
+- ros_topic_name: "sonar_base"
+  gz_topic_name: "/sonar_base"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_summit_worlds</name>
+  <version>0.5.0</version>
+  <description>Gazebo (Harmonic or newer) simulation of a Summit XL for the EasyNav playgrounds: the URJC excavation and a small warehouse, their maps, and the launchers that spawn the Summit XL with its controllers and the ROS-Gazebo bridge.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- Launchers, bridge configuration and maps -->
+  <license file="LICENSE">Apache-2.0</license>
+  <!-- URJC excavation world (worlds/urjc_excavation.world, models/urjc_excavation/), from
+       urjc-excavation-world -->
+  <license file="models/urjc_excavation/LICENSE">GPL-3.0-only</license>
+  <!-- Small warehouse world (worlds/small_warehouse.world, models/aws_robomaker_warehouse_*),
+       from AWS RoboMaker's aws-robomaker-small-warehouse-world -->
+  <license file="models/LICENSE-aws-robomaker">MIT-0</license>
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+  <author>juanscelyg, github.com/juanscelyg (the URJC excavation world)</author>
+  <author>Amazon.com, Inc. or its affiliates (the small warehouse world)</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>diff_drive_controller</exec_depend>
+  <exec_depend>easynav_playground_summit_description</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+  <exec_depend>gz_sim_vendor</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>navmap_tools</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>twist_stamper</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

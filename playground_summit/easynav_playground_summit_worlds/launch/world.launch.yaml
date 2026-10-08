@@ -1,0 +1,44 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Gazebo server (+ optional client) with the URJC excavation world, no robots.
+
+launch:
+- arg:
+    name: world
+    default: $(find-pkg-share easynav_playground_summit_worlds)/worlds/urjc_excavation.world
+    description: Gazebo world file
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+
+# Gazebo finds the excavation model here, and its system plugins (gz_ros2_control) in the
+# library path, as ros_gz_sim's gz_sim.launch.py does
+- set_env:
+    name: GZ_SIM_RESOURCE_PATH
+    value: $(find-pkg-share easynav_playground_summit_worlds)/models:$(env GZ_SIM_RESOURCE_PATH '')
+- set_env:
+    name: GZ_SIM_SYSTEM_PLUGIN_PATH
+    value: $(env GZ_SIM_SYSTEM_PLUGIN_PATH ''):$(env LD_LIBRARY_PATH '')
+
+# Gazebo is started without a shell (gz_sim.launch.py uses one), so the launch's
+# signals reach it: on shutdown, no server or GUI client is left behind.
+- executable:
+    name: gz_server
+    cmd: gz sim -r -s $(var world)
+    output: screen
+# The GUI client itself: "gz sim -g" runs it as a child that outlives a SIGTERM
+- executable:
+    if: $(var gui)
+    name: gz_gui
+    cmd: $(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client
+    output: screen

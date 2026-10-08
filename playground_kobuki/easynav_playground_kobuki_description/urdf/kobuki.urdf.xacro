@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<!--
+    - Base      : kobuki
+    - Stacks    : hexagons
+    - 3d Sensor : kinect
+-->    
+<robot name="kobuki" xmlns:xacro="http://ros.org/wiki/xacro" >
+
+  <xacro:arg name="lidar" default="false" />
+  <xacro:arg name="camera" default="false" />
+  <xacro:arg name="structure" default="false" />
+  <xacro:arg name="lidar_range" default="3.0" />
+
+  <!-- Namespace will be applied to all TF frames and topics.
+       This is required if multiple robots are launched at the same time.
+       IMPORTANT: The namespace MUST include the trailing slash '/'.
+        This is required for compatibility with the base operation without namespace.
+  -->
+  <xacro:arg name="namespace" default="" />
+  <!-- The tf namespace is independent from the regular namespace.
+       This namespace is only applied to the /tf topic.
+       This allows having multiple robots with namespaces either sharing a common /tf topic
+       or with independent /<namespace>/tf topics.
+  -->
+  <xacro:arg name="tf_namespace" default="" />
+  <xacro:arg name="gazebo" default="false" />
+
+  <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/kobuki_base.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/turtlebot_common_library.urdf.xacro" />
+  <xacro:kobuki_base namespace="$(arg namespace)"/>
+
+  <xacro:if value="$(arg structure)">
+    <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/stacks/hexagons.urdf.xacro"/>
+    <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/stacks/circles.urdf.xacro"/>
+    <xacro:stack_hexagons parent="$(arg namespace)base_link" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="0" parent="$(arg namespace)base_link" x_loc="0.120" y_loc="0.082" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="1" parent="$(arg namespace)base_link" x_loc="0.055" y_loc="0.120" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="2" parent="$(arg namespace)base_link" x_loc="-0.055" y_loc="0.120" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="3" parent="$(arg namespace)base_link" x_loc="0.120" y_loc="-0.082" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="4" parent="$(arg namespace)base_link" x_loc="0.055" y_loc="-0.120" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_1in number="5" parent="$(arg namespace)base_link" x_loc="-0.055" y_loc="-0.120" z_loc="0.09" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_2in number="0" parent="$(arg namespace)base_link" x_loc="0.0381" y_loc="0.1505" z_loc="0.1340" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_2in number="1" parent="$(arg namespace)base_link" x_loc="0.0381" y_loc="-0.1505" z_loc="0.1340" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_2in number="2" parent="$(arg namespace)base_link" x_loc="-0.0381" y_loc="0.1505" z_loc="0.1340" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_2in number="3" parent="$(arg namespace)base_link" x_loc="-0.0381" y_loc="-0.1505" z_loc="0.1340" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_8in number="0" parent="$(arg namespace)base_link" x_loc="0.0381" y_loc="0.1505" z_loc="0.1900" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_8in number="1" parent="$(arg namespace)base_link" x_loc="0.0381" y_loc="-0.1505" z_loc="0.1900" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_8in number="2" parent="$(arg namespace)base_link" x_loc="-0.0381" y_loc="0.1505" z_loc="0.1900" namespace="$(arg namespace)"/>
+    <xacro:turtlebot_standoff_8in number="3" parent="$(arg namespace)base_link" x_loc="-0.0381" y_loc="-0.1505" z_loc="0.1900" namespace="$(arg namespace)"/>
+  </xacro:if>
+
+  <xacro:if value="$(arg lidar)">
+    <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/sensors/lidar.urdf.xacro"/>
+    <xacro:sensor_lidar namespace="$(arg namespace)"/>
+  </xacro:if>
+
+  <xacro:if value="$(arg camera)">
+    <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/sensors/asus_xtion_pro.urdf.xacro"/>
+    <xacro:sensor_asus_xtion_pro parent="$(arg namespace)base_link" namespace="$(arg namespace)"/>
+  </xacro:if>
+
+  <xacro:if value="$(arg gazebo)">
+    <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/kobuki_gazebo.urdf.xacro"/>
+    <xacro:kobuki_gazebo lidar="$(arg lidar)" camera="$(arg camera)" namespace="$(arg namespace)" tf_namespace="$(arg tf_namespace)" lidar_range="$(arg lidar_range)"/>
+  </xacro:if>
+  
+</robot>

@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<robot name="sensor_imu" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="sensor_imu" params="prefix ns:='' topic:='imu/data' parent *origin">
+
+	  <joint name="${prefix}_joint" type="fixed">
+	      <axis xyz="1 0 0"/>
+	      <xacro:insert_block name="origin"/>
+	      <parent link="${parent}"/>
+	      <child link="${prefix}_link"/>
+	  </joint>
+
+	  <link name="${prefix}_link">
+	      <inertial>
+			<origin xyz="0.0 0 0.01" rpy="0 0 0" />
+			<mass value="0.005" />
+			<xacro:solid_cuboid_inertia m="0.005" w="0.001" h="0.001" d="0.001" />
+		  </inertial>
+	      <visual>
+	        <origin rpy="0 0 0" xyz="0 0 0"/>
+	        <geometry>
+	          <box size="0.001 0.001 0.001"/>
+	        </geometry>
+	      </visual>
+	  </link>
+
+    <gazebo reference="${prefix}_link">
+      <sensor name="${prefix}_sensor" type="imu">
+        <always_on>1</always_on>
+        <update_rate>30</update_rate>
+        <topic>${topic}</topic>
+        <!-- Without it, Gazebo stamps its scoped name (summit_xl/base_footprint/imu_sensor) -->
+        <gz_frame_id>${prefix}_link</gz_frame_id>
+        <!-- Realistic noise: the IMU then publishes non-zero covariances (filters need them) -->
+        <imu>
+          <angular_velocity><x><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></x><y><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></y><z><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></z></angular_velocity>
+          <linear_acceleration><x><noise type="gaussian"><mean>0</mean><stddev>0.02</stddev></noise></x><y><noise type="gaussian"><mean>0</mean><stddev>0.02</stddev></noise></y><z><noise type="gaussian"><mean>0</mean><stddev>0.02</stddev></noise></z></linear_acceleration>
+        </imu>
+      </sensor>
+    </gazebo>
+
+  </xacro:macro>
+
+</robot>

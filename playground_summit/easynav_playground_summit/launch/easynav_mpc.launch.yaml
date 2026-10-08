@@ -1,0 +1,31 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# NavMap stack with the MPC controller: NavMap AMCL and A* over the NavMap, with the Bonxai 3D map.
+
+launch:
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_summit)/params/mpc.params.yaml
+    description: EasyNav ROS 2 parameters file
+- arg:
+    name: rviz_config
+    default: $(find-pkg-share easynav_playground_summit)/rviz/easynav_bonxai_amcl.rviz
+    description: RViz2 configuration file
+
+- include:
+    file: $(find-pkg-share easynav_playground_summit)/launch/easynav_gazebo_sim.launch.yaml
+    arg:
+    - {name: params_file, value: $(var params_file)}
+    - {name: rviz_config, value: $(var rviz_config)}

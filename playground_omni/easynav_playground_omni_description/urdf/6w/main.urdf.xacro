@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot name="simple_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/6w/base_link.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/6w/gazebo_plugins.urdf.xacro" />   
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/6w/ros2_control.urdf.xacro" />
+
+  <link name="base_footprint" />
+  <!-- Base Link -->
+  <!-- <link name="base_link" /> -->
+  <xacro:base_link  parent="base_footprint" xyz="0 0 0" rpy="0 0 0" />
+
+  <!-- <xacro:omni_wheel parent="base_link" suffix="1" xyz="0 0 0" rpy="0 0 0"/> -->
+
+</robot>

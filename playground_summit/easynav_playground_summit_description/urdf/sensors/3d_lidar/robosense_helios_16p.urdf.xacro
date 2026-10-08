@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<robot name="sensor_robosense_helios" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="sensor_robosense_helios"
+               params="frame_prefix
+                       parent
+                       *origin
+                       simulation:=true
+                       node_name:=robosense_helios
+                       node_namespace:=${None}
+                       topic_prefix:=~/
+                       gpu:=true">
+
+    <joint name="${frame_prefix}_base_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent}"/>
+      <child link="${frame_prefix}_base_link"/>
+    </joint>
+    <link name="${frame_prefix}_base_link">
+      <collision>
+        <!-- Box with the mesh bounds: mesh-vs-terrain contacts overflow ODE -->
+        <origin xyz="0 0 0.0414" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.1 0.1 0.1192"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="file://$(find easynav_playground_summit_description)/meshes/sensors/3d_lidar/robotsense/helios_16p.stl"/>
+        </geometry>
+        <material name="blackgray_color">
+          <color rgba="0.25 0.25 0.25 1"/>
+        </material>
+      </visual>
+      <inertial>
+        <mass value="0.840" />
+        <origin xyz="0 0 0.04135" />
+		<xacro:solid_cuboid_inertia m="0.840" w="0.109" h="0.109" d="0.0827" />
+      </inertial>
+    </link>
+    <joint name="${frame_prefix}_joint" type="fixed">
+      <parent link="${frame_prefix}_base_link"/>
+      <child link="${frame_prefix}_link"/>
+      <origin xyz="0.0 0 0.0635" rpy="0 0 0"/>
+    </joint>
+    <link name="${frame_prefix}_link"/>
+      <gazebo reference="${frame_prefix}_link">
+        <sensor name='gpu_lidar' type='gpu_lidar'>
+          <pose relative_to='${frame_prefix}_link'>0 0 0 0 0 0</pose>
+          <topic>${frame_prefix}</topic>
+          <update_rate>20</update_rate>
+          <gz_frame_id>${frame_prefix}_link</gz_frame_id>
+          <ray>
+            <scan>
+              <horizontal>
+                <samples>1200</samples> <!-- 900 -->
+                <resolution>1</resolution>
+                <min_angle>-3.141592</min_angle>
+                <max_angle>3.141592</max_angle>
+              </horizontal>
+              <vertical>
+                <samples>16</samples>
+                <resolution>1</resolution>
+                <min_angle>-0.261799</min_angle>
+                <max_angle>0.261799</max_angle>
+              </vertical>
+            </scan>
+            <range>
+              <min>0.2</min>
+              <max>90.0</max>
+              <resolution>0.01</resolution>
+            </range>
+          </ray>
+          <visualize>true</visualize>
+        </sensor>
+      </gazebo>
+  </xacro:macro>
+</robot>

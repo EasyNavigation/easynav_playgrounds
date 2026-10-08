@@ -1,0 +1,7 @@
+# Copyright (c) 2026 Francisco Martín Rico
+# SPDX-License-Identifier: Apache-2.0
+
+maps_manager_node:
+  ros__parameters:
+    costmap:
+      map_path_file: maps/maze1.yaml

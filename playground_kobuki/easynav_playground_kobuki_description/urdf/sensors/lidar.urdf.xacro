@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<robot name="sensor_lidar" xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <xacro:macro name="sensor_lidar" params = "namespace">
+  
+  <link name="$(arg namespace)laser_link">
+      <visual>
+          <geometry>
+            <mesh filename="file://$(find easynav_playground_kobuki_description)/meshes/sensors/rplidar.dae" scale="0.001 0.001 0.001" /> 
+          </geometry>
+          <origin xyz="0 0 0.025" rpy="-1.5707 0 -1.5707"/>
+        </visual>
+        <inertial>
+          <mass value="0.0001" />
+          <origin xyz="0 0 0" />
+          <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                   iyy="0.0001" iyz="0.0"
+                   izz="0.0001" />
+        </inertial>
+      </link>
+
+      <joint name="$(arg namespace)laser_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.37" rpy="0 0 3.14" />
+        <parent link="$(arg namespace)base_link"/>
+        <child link="$(arg namespace)laser_link" />
+    </joint>
+
+  </xacro:macro>
+</robot>

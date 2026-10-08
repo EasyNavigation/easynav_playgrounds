@@ -1,0 +1,98 @@
+<?xml version="1.0" ?>
+
+<robot name="kobuki_gazebo" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="kobuki_gazebo" params="lidar camera namespace tf_namespace lidar_range:=3.0">
+
+    <gazebo>
+      <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+        <left_joint>$(arg namespace)wheel_left_joint</left_joint>
+        <right_joint>$(arg namespace)wheel_right_joint</right_joint>
+        <wheel_separation>0.223087</wheel_separation>
+        <wheel_radius>0.035</wheel_radius>
+        <max_linear_acceleration>1.0</max_linear_acceleration> 
+        <topic>$(arg namespace)cmd_vel</topic>
+        <odom_topic>$(arg namespace)odom</odom_topic>
+        <frame_id>$(arg namespace)odom</frame_id>
+        <child_frame_id>$(arg namespace)base_footprint</child_frame_id>
+        <odom_publisher_frequency>30</odom_publisher_frequency>
+        <tf_topic>$(arg tf_namespace)tf</tf_topic>
+      </plugin>
+
+      <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+        <topic>$(arg namespace)joint_states</topic>
+        <joint>$(arg namespace)wheel_left_joint</joint>
+        <joint>$(arg namespace)wheel_right_joint</joint>
+      </plugin> 
+    </gazebo>
+
+    <xacro:if value="$(arg lidar)">
+      <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+      <gazebo reference="$(arg namespace)laser_link">
+        <sensor name="$(arg namespace)kobuki_lidar" type="gpu_lidar">
+            <always_on>true</always_on>
+            <visualize>true</visualize>
+            <update_rate>5</update_rate>
+            <topic>$(arg namespace)scan_raw</topic>
+            <gz_frame_id>$(arg namespace)laser_link</gz_frame_id>
+            <lidar>
+              <scan>
+                <horizontal>
+                  <samples>360</samples>
+                  <resolution>1.000000</resolution>
+                  <min_angle>0.000000</min_angle>
+                  <max_angle>6.280000</max_angle>
+                </horizontal>
+              </scan>
+              <range>
+                <min>0.17</min>
+                <max>$(arg lidar_range)</max>
+                <resolution>0.015000</resolution>
+              </range>
+              <noise>
+                <type>gaussian</type>
+                <mean>0.0</mean>
+                <stddev>0.01</stddev>
+              </noise>
+            </lidar>
+          </sensor>
+      </gazebo>
+    </xacro:if>
+
+    <xacro:if value="$(arg camera)">
+      <gazebo reference="$(arg namespace)camera_rgb_frame">
+        <sensor type="rgbd_camera" name="$(arg namespace)kobuki_frame_sensor">
+          <always_on>1</always_on>
+          <update_rate>30.0</update_rate>
+          <visualize>true</visualize>
+          <topic>$(arg namespace)rgbd_camera</topic>
+          <gz_frame_id>$(arg namespace)camera_rgb_optical_frame</gz_frame_id>
+          <camera>
+            <horizontal_fov>${63.0*M_PI/180.0}</horizontal_fov>
+            <image>
+              <format>B8G8R8</format>
+              <width>640</width>
+              <height>480</height>
+            </image>
+            <clip>
+              <near>0.3</near>
+              <far>8.0</far>
+            </clip>
+            <distortion>
+              <k1>0.00000001</k1>
+              <k2>0.00000001</k2>
+              <k3>0.00000001</k3>
+              <p1>0.00000001</p1>
+              <p2>0.00000001</p2>
+            </distortion>
+            <optical_frame_id>$(arg namespace)camera_rgb_optical_frame</optical_frame_id>
+          </camera>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+
+  </xacro:macro>
+</robot>

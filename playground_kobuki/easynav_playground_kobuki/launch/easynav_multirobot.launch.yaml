@@ -1,0 +1,87 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Two Kobukis (r1, r2), each with its own EasyNav and RViz2. Each robot uses
+# its own tf topic (/r1/tf) and prefixed frames (r1/map, r1/base_link...).
+
+launch:
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_kobuki)/params/costmap_multirobot.params.yaml
+    description: EasyNav ROS 2 parameters file, with r1/ and r2/ sections
+- arg:
+    name: rviz_config
+    default: $(find-pkg-share easynav_playground_kobuki)/rviz/easynav_multirobot.rviz
+    description: RViz2 configuration file, with relative topic names
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg: {name: rviz, default: 'true', description: Start one RViz2 per robot}
+- arg: {name: lidar_range, default: '3.0', description: Maximum lidar range (m)}
+
+- include:
+    file: $(find-pkg-share easynav_playground_kobuki_worlds)/launch/multirobot_gazebo_sim.launch.yaml
+    arg:
+    - {name: gui, value: $(var gui)}
+    - {name: lidar_range, value: $(var lidar_range)}
+
+# Give Gazebo time to come up before starting EasyNav
+- timer:
+    period: 5.0
+    children:
+    - node:
+        pkg: easynav_system
+        exec: system_main
+        namespace: r1
+        output: screen
+        on_exit: shutdown
+        param:
+        - from: $(var params_file)
+        remap:
+        - {from: /tf, to: tf}
+        - {from: /tf_static, to: tf_static}
+    - node:
+        pkg: easynav_system
+        exec: system_main
+        namespace: r2
+        output: screen
+        on_exit: shutdown
+        param:
+        - from: $(var params_file)
+        remap:
+        - {from: /tf, to: tf}
+        - {from: /tf_static, to: tf_static}
+
+- node:
+    if: $(var rviz)
+    pkg: rviz2
+    exec: rviz2
+    namespace: r1
+    output: screen
+    args: -d $(var rviz_config) -f r1/map
+    param:
+    - {name: use_sim_time, value: true}
+    remap:
+    - {from: /tf, to: tf}
+    - {from: /tf_static, to: tf_static}
+- node:
+    if: $(var rviz)
+    pkg: rviz2
+    exec: rviz2
+    namespace: r2
+    output: screen
+    args: -d $(var rviz_config) -f r2/map
+    param:
+    - {name: use_sim_time, value: true}
+    remap:
+    - {from: /tf, to: tf}
+    - {from: /tf_static, to: tf_static}

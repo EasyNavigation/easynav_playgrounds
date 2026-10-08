@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<robot name="sensors" xmlns:xacro="http://wiki.ros.org/xacro">
+  <!-- The robotnik_sensors macros the Summit XL uses (from all_sensors.urdf.xacro) -->
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/utils/inertia.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/depth/stereolabs_generic.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/depth/stereolabs_zed2.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/3d_lidar/robosense_helios_16p.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/imu.urdf.xacro" />
+  <xacro:include filename="$(find easynav_playground_summit_description)/urdf/sensors/gps/gps.urdf.xacro" />
+</robot>

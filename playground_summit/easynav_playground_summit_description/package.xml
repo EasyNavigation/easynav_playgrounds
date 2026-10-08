@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_summit_description</name>
+  <version>0.5.0</version>
+  <description>Robotnik Summit XL robot description for the EasyNav playgrounds: URDF, meshes and ros2_control controllers, from Robotnik's robot_description and robotnik_sensors.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- The Summit XL model (urdf/, meshes/, config/): Copyright (c) 2023, Robotnik Automation S.L.,
+       from robot_description and robotnik_sensors (Summit-Harmonic) -->
+  <license file="LICENSE">BSD-3-Clause</license>
+  <author>Robotnik Automation S.L.</author>
+  <!-- Adapted for this simulation (see the README) -->
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

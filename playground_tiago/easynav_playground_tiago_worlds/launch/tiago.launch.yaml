@@ -1,0 +1,59 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Spawns TIAGo in a running Gazebo with its ros2_control controllers and the sensor bridge.
+# The base takes TwistStamped on /mobile_base_controller/cmd_vel; the arm, torso, head and
+# gripper take trajectories (<controller>/follow_joint_trajectory or <controller>/joint_trajectory).
+
+launch:
+- arg: {name: x, default: '0.0'}
+- arg: {name: y, default: '0.0'}
+- arg: {name: z, default: '0.0'}
+- arg: {name: Y, default: '0.0'}
+- arg: {name: use_sim_time, default: 'true'}
+
+- node:
+    pkg: robot_state_publisher
+    exec: robot_state_publisher
+    output: screen
+    param:
+    - name: robot_description
+      type: str
+      value: $(command 'xacro $(find-pkg-share easynav_playground_tiago_description)/urdf/tiago.urdf.xacro')
+    - {name: use_sim_time, value: $(var use_sim_time)}
+
+- node:
+    pkg: ros_gz_sim
+    exec: create
+    output: screen
+    args: -name tiago -topic robot_description -x $(var x) -y $(var y) -z $(var z) -Y $(var Y)
+
+- node:
+    pkg: ros_gz_bridge
+    exec: parameter_bridge
+    name: bridge_ros_gz
+    output: screen
+    param:
+    - {name: config_file, value: $(find-pkg-share easynav_playground_tiago_worlds)/config/bridge/tiago_bridge.yaml}
+    - {name: use_sim_time, value: $(var use_sim_time)}
+
+# The spawner waits for gz_ros2_control's controller_manager
+- node:
+    pkg: controller_manager
+    exec: spawner
+    output: screen
+    args: >-
+      --param-file $(find-pkg-share easynav_playground_tiago_description)/config/tiago_controllers.yaml
+      joint_state_broadcaster imu_sensor_broadcaster ft_sensor_controller mobile_base_controller
+      torso_controller head_controller arm_controller gripper_controller

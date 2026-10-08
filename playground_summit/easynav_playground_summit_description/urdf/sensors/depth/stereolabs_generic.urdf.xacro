@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<robot name="sensor_stereolabs_generic" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="sensor_stereolabs_generic"
+               params="frame_prefix
+                       parent
+                       *origin
+                       model:=zed2
+                       simulation:=true
+                       node_name:=stereolabs_generic
+                       node_namespace:=${None}
+                       topic_prefix:=~/
+                       horizontal_fov:=80
+                       vertical_fov:=60
+                       video_width:=1280
+                       video_height:=720
+                       video_fps:=30
+                       min_depth:=0.4
+                       max_depth:=6.5">
+    <!-- node_namespace is used from node_name if not set -->
+    <xacro:if value="${node_namespace == None}">
+      <xacro:property name="node_namespace" value="${node_name}"/>
+    </xacro:if>
+
+    <xacro:if value="${model == 'zed'}">
+        <xacro:property name="baseline" value="0.12" />
+    </xacro:if>
+    <xacro:if value="${model == 'zedm'}">
+        <xacro:property name="baseline" value="0.06" />
+    </xacro:if>
+    <xacro:if value="${model == 'zed2'}">
+        <xacro:property name="baseline" value="0.12" />
+    </xacro:if>
+
+    <joint name="${frame_prefix}base_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent}"/>
+      <child link="${frame_prefix}base_link" />
+    </joint>
+    <link name="${frame_prefix}base_link">
+       <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="file://$(find easynav_playground_summit_description)/meshes/sensors/depth/stereolabs_zed/${model}.stl"/>
+        </geometry>
+        <material name="light_zed_grey">
+          <color rgba="0.35 0.35 0.35 1"/>
+        </material>
+      </visual>
+      <collision>
+        <!-- Box with the mesh bounds: mesh-vs-terrain contacts overflow ODE -->
+        <origin xyz="-0.0007 0 0" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.0318 0.1748 0.03"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.135" />
+        <origin xyz="0 0 0" />
+        <xacro:solid_cuboid_inertia m="0.135" w="0.033" h="0.175" d="0.03" />
+      </inertial>
+    </link>
+
+    <!-- Left camera -->
+    <joint name="${frame_prefix}color_left_joint" type="fixed">
+      <origin xyz="0.0 0.06 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="${frame_prefix}base_link" />
+      <child link="${frame_prefix}left_camera_frame" />
+    </joint>
+    <link name="${frame_prefix}left_camera_frame"/>
+
+    <joint name="${frame_prefix}color_left_optical_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}" />
+      <parent link="${frame_prefix}left_camera_frame" />
+      <child link="${frame_prefix}left_camera_optical_frame" />
+    </joint>
+    <link name="${frame_prefix}left_camera_optical_frame"/>
+
+    <!-- Right camera-->
+    <joint name="${frame_prefix}color_right_joint" type="fixed">
+      <origin xyz="0.0 -0.06 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="${frame_prefix}base_link" />
+      <child link="${frame_prefix}right_camera_frame" />
+    </joint>
+    <link name="${frame_prefix}right_camera_frame"/>
+
+    <joint name="${frame_prefix}color_right_optical_joint" type="fixed">
+      <origin xyz="0.0 0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}" />
+      <parent link="${frame_prefix}right_camera_frame" />
+      <child link="${frame_prefix}right_camera_optical_frame" />
+    </joint>
+    <link name="${frame_prefix}right_camera_optical_frame"/>
+
+    <!-- Depth Camera-->
+    <joint name="${frame_prefix}depth_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+      <parent link="${frame_prefix}base_link" />
+      <child link="${frame_prefix}depth_frame" />
+    </joint>
+    <link name="${frame_prefix}depth_frame"/>
+
+    <joint name="${frame_prefix}depth_optical_joint" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="${-pi/2} 0.0 ${-pi/2}" />
+      <parent link="${frame_prefix}depth_frame" />
+      <child link="${frame_prefix}depth_optical_frame" />
+    </joint>
+    <link name="${frame_prefix}depth_optical_frame"/>
+
+    <!-- Right Camera Gazebo Definition -->
+    <!-- The left/right RGB cameras are not simulated: nothing uses them and they load the GPU -->
+    <!-- Depth Camera Gazebo Definition -->
+    <gazebo reference="${frame_prefix}depth_frame">
+      <sensor name="rgbd_camera" type="rgbd_camera">
+        <camera>
+          <horizontal_fov>${radians(float(horizontal_fov))}</horizontal_fov>
+          <image>
+            <!-- Quarter resolution: 57600 points per cloud, enough to see low obstacles ahead -->
+            <width>${video_width // 2}</width>
+            <height>${video_height // 2}</height>
+          </image>
+          <clip>
+            <near>${min_depth}</near>
+            <far>${max_depth}</far>
+          </clip>
+          <optical_frame_id>${frame_prefix}depth_frame</optical_frame_id>
+        </camera>
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <visualize>true</visualize>
+        <topic>/${frame_prefix}depth_camera</topic>
+        <gz_frame_id>${frame_prefix}depth_frame</gz_frame_id>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

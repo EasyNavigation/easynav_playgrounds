@@ -1,0 +1,115 @@
+# ros2_control for the simulated TIAGo, loaded by gz_ros2_control and by the spawner.
+# Values from PAL's tiago_controller_configuration, pmb2_controller_configuration and
+# pal_gripper_controller_configuration.
+
+/**/controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+    use_sim_time: true
+
+/**/joint_state_broadcaster:
+  ros__parameters:
+    type: joint_state_broadcaster/JointStateBroadcaster
+
+/**/imu_sensor_broadcaster:
+  ros__parameters:
+    type: imu_sensor_broadcaster/IMUSensorBroadcaster
+    sensor_name: base_imu_sensor
+    frame_id: base_imu_link
+
+/**/mobile_base_controller:
+  ros__parameters:
+    type: diff_drive_controller/DiffDriveController
+    left_wheel_names: ["wheel_left_joint"]
+    right_wheel_names: ["wheel_right_joint"]
+
+    wheel_radius: 0.0985
+    wheel_separation: 0.4044
+    wheel_separation_multiplier: 1.0
+    left_wheel_radius_multiplier: 1.0
+    right_wheel_radius_multiplier: 1.0
+
+    publish_rate: 50.0
+    base_frame_id: base_footprint
+    odom_frame_id: odom
+    enable_odom_tf: true
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    # Not 0: a zero variance destabilizes Kalman filters
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+
+    cmd_vel_timeout: 0.5
+    # TwistStamped on ~/cmd_vel (the only option from Kilted)
+    use_stamped_vel: true
+
+    linear.x.has_velocity_limits: true
+    linear.x.has_acceleration_limits: true
+    linear.x.max_velocity: 1.0
+    linear.x.min_velocity: -0.2
+    linear.x.max_acceleration: 0.5
+    angular.z.has_velocity_limits: true
+    angular.z.has_acceleration_limits: true
+    angular.z.max_velocity: 1.05
+    angular.z.min_velocity: -1.05
+    angular.z.max_acceleration: 1.05
+
+/**/ft_sensor_controller:
+  ros__parameters:
+    type: force_torque_sensor_broadcaster/ForceTorqueSensorBroadcaster
+    sensor_name: wrist_ft_sensor
+    frame_id: wrist_ft_link
+
+# Torso, head, arm and gripper hold their position (they would sag under gravity without a
+# controller); they move with FollowJointTrajectory goals or trajectories on ~/joint_trajectory
+/**/arm_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [arm_1_joint, arm_2_joint, arm_3_joint, arm_4_joint, arm_5_joint, arm_6_joint,
+             arm_7_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      arm_1_joint: {goal: 0.02}
+      arm_2_joint: {goal: 0.02}
+      arm_3_joint: {goal: 0.02}
+      arm_4_joint: {goal: 0.02}
+      arm_5_joint: {goal: 0.02}
+      arm_6_joint: {goal: 0.02}
+      arm_7_joint: {goal: 0.02}
+
+/**/gripper_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [gripper_right_finger_joint, gripper_left_finger_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      gripper_right_finger_joint: {goal: 0.02}
+      gripper_left_finger_joint: {goal: 0.02}
+
+/**/torso_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [torso_lift_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      torso_lift_joint: {goal: 0.02}
+
+/**/head_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [head_1_joint, head_2_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    open_loop_control: true
+    constraints:
+      goal_time: 2.0
+      stopped_velocity_tolerance: 5.0
+      head_1_joint: {goal: 0.5}
+      head_2_joint: {goal: 0.5}

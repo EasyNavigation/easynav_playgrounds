@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <ros2_control name="GazeboSystem" type="system">
+        <hardware>
+            <!-- Use the correct plugin name that exists in your system -->
+            <plugin>gz_ros2_control/GazeboSimSystem</plugin>
+            
+            <!-- Required parameters -->
+            <param name="robot_param">robot_description</param>
+            <param name="robot_param_node">robot_state_publisher</param>
+        </hardware>
+        <joint name="omni_wheel_joint_1">
+            <command_interface name="velocity">
+                <param name="min">-35</param>
+                <param name="max">35</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+        </joint>
+        <joint name="omni_wheel_joint_2">
+            <command_interface name="velocity">
+                <param name="min">-35</param>
+                <param name="max">35</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+        </joint>
+        <joint name="omni_wheel_joint_3">
+            <command_interface name="velocity">
+                <param name="min">-35</param>
+                <param name="max">35</param>
+            </command_interface>
+            <state_interface name="position" />
+            <state_interface name="velocity" />
+        </joint>
+    </ros2_control>
+</robot>

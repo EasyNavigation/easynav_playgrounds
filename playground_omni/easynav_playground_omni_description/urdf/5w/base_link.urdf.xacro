@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/5w/omni_wheel.urdf.xacro"/>
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/5w/camera.urdf.xacro"/>
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/5w/lidar.urdf.xacro"/>
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/5w/imu.urdf.xacro"/>
+  <xacro:macro name="base_link" params="parent xyz rpy">
+    <link name="base_link">
+      <visual>
+        <geometry>
+          <mesh filename="package://easynav_playground_omni_description/meshes/5w/base_link.dae" />
+        </geometry>
+        <!-- <material name="base_color">
+          <color rgba="0.34 0.55 0.949 1" />
+        </material> -->
+      </visual>
+      <collision>
+        <geometry>
+          <mesh filename="package://easynav_playground_omni_description/meshes/5w/base_link.stl" />
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="3.0" />
+        <inertia 
+          ixx="0.9" ixy="0.0" ixz="0.0"
+          iyy="0.9" iyz="0.0"
+          izz="0.01"/>
+      </inertial>
+    </link>
+
+    <joint name="base_joint" type="fixed">
+      <parent link="${parent}" />
+      <child link="base_link" />
+      <origin xyz="${xyz}" rpy="${rpy}" />
+    </joint>
+
+    <!-- Childs -->
+    <xacro:omni_wheel parent="base_link" suffix="1" xyz="0.0927 0.0000 0.0145" rpy="-0.8040 1.5708 -0.8040"/>
+    <xacro:omni_wheel parent="base_link" suffix="2" xyz="0.0287 0.0882 0.0145" rpy="-0.8040 1.5708 0.4526"/>
+    <xacro:omni_wheel parent="base_link" suffix="3" xyz="-0.0750 0.0545 0.0145" rpy="-0.8040 1.5708 1.7092"/>
+    <xacro:omni_wheel parent="base_link" suffix="4" xyz="-0.0750 -0.0545 0.0145" rpy="-0.8040 1.5708 2.9659"/>
+    <xacro:omni_wheel parent="base_link" suffix="5" xyz="0.0287 -0.0882 0.0145" rpy="-0.8040 1.5708 -2.0607"/>
+
+    <xacro:camera parent="base_link" suffix="1" xyz="0.1035 -0.0000 0.0630" rpy="0 0 0"/>
+    <xacro:lidar parent="base_link" suffix="1" xyz="0.0000 0.0000 0.1010" rpy="0 0 0"/>
+    <xacro:imu parent="base_link" suffix="1" xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:macro>
+</robot>

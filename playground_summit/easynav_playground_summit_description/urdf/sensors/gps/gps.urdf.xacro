@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<robot name="sensor_gps" xmlns:xacro="http://wiki.ros.org/xacro">
+	<xacro:macro name="sensor_gps"
+               params="frame_prefix
+                       parent
+                       *origin
+                       simulation:=false
+                       node_name:=gps
+                       node_namespace:=${None}
+                       topic_prefix:=~/
+                       update_rate:=5.0">
+
+	  <joint name="${frame_prefix}joint" type="fixed">
+	    <xacro:insert_block name="origin"/>
+	    <parent link="${parent}"/>
+	    <child link="${frame_prefix}base_link"/>
+	  </joint>
+	  <link name="${frame_prefix}base_link">
+      <inertial>
+        <origin xyz="0.0 0 0.015" rpy="0 0 0" />
+        <mass value="0.2" />
+        <xacro:solid_cuboid_inertia m="0.2" w="0.081" h="0.081" d="0.03" />
+      </inertial>
+	    <visual>
+	      <origin rpy="0 0 0" xyz="0 0 0"/>
+	      <material name="gps_color">
+           <color rgba="1 1 1 1"/>
+        </material>
+	      <geometry>
+	        <mesh filename="file://$(find easynav_playground_summit_description)/meshes/sensors/gps/antenna_3GO16.stl"/>
+	      </geometry>
+	    </visual>
+	    <collision>
+	      <!-- Box with the mesh bounds: mesh-vs-terrain contacts overflow ODE -->
+        <origin xyz="0 0 0.0153" rpy="0 0 0"/>
+	      <geometry>
+	        <box size="0.0866 0.0866 0.0305"/>
+	      </geometry>
+	    </collision>
+	  </link>
+
+	  <gazebo reference="${frame_prefix}base_link">
+	    <material>Gazebo/White</material>
+	    <gravity>true</gravity>
+	  </gazebo>
+
+    <gazebo reference="${frame_prefix}base_link">
+      <sensor name="${frame_prefix}sensor" type="navsat">
+        <always_on>1</always_on>
+        <update_rate>${update_rate}</update_rate>
+        <topic>gps/fix</topic>
+        <gz_frame_id>${frame_prefix}base_link</gz_frame_id>
+      </sensor>
+    </gazebo>
+
+  </xacro:macro>
+</robot>

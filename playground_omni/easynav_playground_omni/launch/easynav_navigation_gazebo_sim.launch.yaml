@@ -1,0 +1,65 @@
+# Copyright (c) 2026 Francisco Martín Rico
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+launch:
+- arg:
+    name: world
+    default: maze2
+    description: Gazebo world to launch
+- arg:
+    name: robot
+    default: 3w_v2
+    description: Robot model to spawn
+    choice: [{value: 3w}, {value: 3w_v2}, {value: 4w}, {value: 5w}, {value: 6w}]
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_omni)/params/easynav_costmap_rpp.params.yaml
+    description: EasyNav ROS 2 parameters file
+- arg:
+    name: rviz_config
+    default: $(find-pkg-share easynav_playground_omni)/rviz/easynav_costmap.rviz
+    description: RViz2 configuration file
+- arg:
+    name: map_override_file
+    default: $(find-pkg-share easynav_playground_omni)/params/map_overrides/$(var world)/map.yaml
+    description: EasyNav map selection matching the Gazebo world
+
+- include:
+    file: $(find-pkg-share easynav_playground_omni_worlds)/launch/gazebo_sim.launch.yaml
+    arg:
+    - {name: world, value: $(var world)}
+    - {name: robot, value: $(var robot)}
+    - {name: use_sim_time, value: 'true'}
+
+# Give Gazebo time to come up before starting EasyNav
+- timer:
+    period: 5.0
+    children:
+    - node:
+        pkg: easynav_system
+        exec: system_main
+        output: screen
+        on_exit: shutdown
+        param:
+        - from: $(var params_file)
+        - from: $(var map_override_file)
+
+- node:
+    pkg: rviz2
+    exec: rviz2
+    output: screen
+    args: -d $(var rviz_config)
+    param:
+    - {name: use_sim_time, value: true}

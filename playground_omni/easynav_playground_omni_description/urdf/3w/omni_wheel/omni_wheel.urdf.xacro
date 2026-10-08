@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<!--
+Copyright (c) 2025 Yohan Prakoso
+Copyright (c) 2026 Francisco Martín Rico
+SPDX-License-Identifier: MIT AND Apache-2.0
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+
+  <!-- <xacro:include filename="$(find easynav_playground_omni_description)/urdf/3w/omni_wheel/omni_wheel.transmission.xacro"/>
+  <xacro:include filename="$(find easynav_playground_omni_description)/urdf/3w/omni_wheel/omni_wheel.gazebo.xacro"/> -->
+  
+  <xacro:macro name="wheel_v0" params="suffix parent *joint_origin *joint_axis">
+	<joint name="omni_wheel_joint_${suffix}" type="continuous">
+	  <xacro:insert_block name="joint_origin"/>
+	  <parent link="${parent}"/>
+	  <child link="omni_wheel_link_${suffix}"/>
+          <limit effort="100" velocity="100"/>
+	  <xacro:insert_block name="joint_axis"/>
+	</joint>
+
+	<link name="omni_wheel_link_${suffix}">
+	  <visual>
+		<geometry>
+		  <mesh filename="package://easynav_playground_omni_description/meshes/DAE/omni_wheel/omni_wheel.dae"/>
+		</geometry>
+	  </visual>
+	  <collision>
+		<geometry>
+		  <mesh filename="package://easynav_playground_omni_description/meshes/STL/omni_wheel/omni_wheel.stl"/>
+		</geometry>
+	  </collision>
+	  <inertial>
+		<origin xyz="0.0 -0.011 -0.0"/>
+		<mass value="0.25"/>
+		<inertia ixx="0.00031" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.00031"/>
+	  </inertial>
+          <surface>
+            <friction>
+              <ode>
+                <mu1>1.2</mu1>
+                <mu2>1.2</mu2>
+                <kp>1e15</kp>
+                <kd>1e13</kd>
+              </ode>
+            </friction>
+            <bounce>
+              <restitution_coefficient>0.01</restitution_coefficient>
+              <threshold>0</threshold>
+            </bounce>
+            <contact>
+              <ode>
+                <max_vel>10</max_vel>
+              </ode>
+            </contact>
+          </surface>
+	</link>
+  </xacro:macro>
+  
+</robot>
