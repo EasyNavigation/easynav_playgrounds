@@ -1,0 +1,9 @@
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Changelog for package easynav_playground_summit_description
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Forthcoming
+-----------
+* First release, in the easynav_playgrounds repository: the Robotnik Summit XL model (URDF, meshes and controllers), without Gazebo or EasyNav dependencies
+* Contributors: Francisco Martín Rico, Juan Sebastián Cely Gutierrez
+
