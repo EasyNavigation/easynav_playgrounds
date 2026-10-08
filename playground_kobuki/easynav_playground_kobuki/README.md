@@ -45,7 +45,6 @@ All of them use the `maps/home2.yaml` occupancy map.
 
 | Launch file | Controller | Localizer | Notes |
 | --- | --- | --- | --- |
-| `easynav_costmap.launch.yaml` | Simple | AMCL | |
 | `easynav_costmap_rpp.launch.yaml` | Regulated Pure Pursuit | AMCL | Tuned for the Kobuki footprint |
 | `easynav_costmap_rpp_mhamcl.launch.yaml` | Regulated Pure Pursuit | Multi-hypothesis AMCL | |
 | `easynav_costmap_rpp_reflex.launch.yaml` | Regulated Pure Pursuit | AMCL | For trying the collision safety reflex by hand |
