@@ -66,14 +66,12 @@ install(FILES
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
+  # The files from the original robot declare their license with SPDX identifiers (MIT,
+  # MIT AND Apache-2.0), which ament_copyright does not recognize: copyright skips them
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_copyright)
   ament_lint_auto_find_test_dependencies()
+  find_package(ament_cmake_copyright REQUIRED)
+  ament_copyright(EXCLUDE scripts/test_run_motor.py scripts/test_subscriber.py src/kinematics.cpp)
 endif()
 
 ament_package()

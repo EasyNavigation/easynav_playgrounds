@@ -17,14 +17,20 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "sensor_msgs/msg/imu.hpp"
-#include <tf2_ros/transform_broadcaster.hpp>
-#include <tf2/LinearMath/Quaternion.hpp>
-#include <tf2/LinearMath/Matrix3x3.hpp>
-#include <Eigen/Dense>
+#include "tf2_ros/transform_broadcaster.hpp"
+#include "tf2/LinearMath/Quaternion.hpp"
+#include "tf2/LinearMath/Matrix3x3.hpp"
+#include "Eigen/Dense"
 
 using namespace std::chrono_literals;
 using std::placeholders::_1;
-using namespace std;
+using std::cout;
+using std::endl;
+using std::pair;
+using std::string;
+using std::to_string;
+using std::unordered_map;
+using std::vector;
 
 #define WHEEL_RADIUS        0.03
 #define ROBOT_RADIUS        0.088
@@ -53,7 +59,7 @@ public:
     double heading_offset_ = 0)
   : Node("omni_kinematics")
   {
-    N = num_wheels_; // num of wheel
+    N = num_wheels_;  // num of wheel
     R = robot_radius_;
     r = wheel_radius_;
     heading_offset = heading_offset_;
@@ -115,14 +121,15 @@ private:
 
   std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster;
 
-  Eigen::MatrixXd tM; //transform matrix from command speed to wheel speed
-  Eigen::MatrixXd tMI; //Inverse Matrix of tM which is a transform matrix from wheel speed to command speed
-  unordered_map<string, int> wheel_joint_map_index; // list of wheel joint name with its index
+  Eigen::MatrixXd tM;  // transform matrix from command speed to wheel speed
+  // Inverse Matrix of tM which is a transform matrix from wheel speed to command speed
+  Eigen::MatrixXd tMI;
+  unordered_map<string, int> wheel_joint_map_index;  // list of wheel joint name with its index
 
   // size_t count_;
-  int N; // num of wheel
-  double r; // wheel radius
-  double R; // Robot Radius
+  int N;  // num of wheel
+  double r;  // wheel radius
+  double R;  // Robot Radius
   double heading_offset;
   double mOd[2][3] = {{0, 0, 0}, {0, 0, 0}};
   double pos_x = 0;
@@ -191,7 +198,7 @@ private:
     );
 
     tf2::Matrix3x3 m(q);
-    m.getRPY(roll, pitch, yaw); // Extract roll, pitch, and yaw
+    m.getRPY(roll, pitch, yaw);  // Extract roll, pitch, and yaw
 
     // RCLCPP_INFO(this->get_logger(), "Yaw: %f", yaw);
   }
