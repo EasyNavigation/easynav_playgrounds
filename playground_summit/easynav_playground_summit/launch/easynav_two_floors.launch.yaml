@@ -1,0 +1,51 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Map viewer, no simulator: EasyNav with the NavMap and Bonxai maps managers (maps/two_floors.navmap,
+# maps/two_floors_bonxai.pcd) and dummy localizer, planner and controller, plus RViz2.
+
+launch:
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_summit)/params/two_floors.params.yaml
+    description: EasyNav ROS 2 parameters file
+- arg:
+    name: rviz_config
+    default: $(find-pkg-share easynav_playground_summit)/rviz/easynav_two_floors.rviz
+    description: RViz2 configuration file
+- arg:
+    name: rviz
+    default: 'true'
+    description: Start RViz2
+
+- node:
+    pkg: easynav_system
+    exec: system_main
+    output: screen
+    on_exit: shutdown
+    param:
+    - from: $(var params_file)
+
+- node:
+    if: $(var rviz)
+    pkg: rviz2
+    exec: rviz2
+    output: screen
+    args: -d $(var rviz_config)
+
+# The dummy localizer publishes no map -> odom: keep the TF tree complete for RViz2
+- node:
+    pkg: tf2_ros
+    exec: static_transform_publisher
+    args: --frame-id map --child-frame-id odom

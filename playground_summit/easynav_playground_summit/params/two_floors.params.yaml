@@ -1,0 +1,56 @@
+# Two-floors map viewer: only the maps managers do real work (no simulator, no robot).
+
+controller_node:
+  ros__parameters:
+    controller_types: [dummy]
+    dummy:
+      rt_freq: 30.0
+      plugin: easynav_controller/DummyController
+
+localizer_node:
+  ros__parameters:
+    localizer_types: [dummy]
+    dummy:
+      rt_freq: 50.0
+      freq: 5.0
+      plugin: easynav_localizer/DummyLocalizer
+
+maps_manager_node:
+  ros__parameters:
+    map_types: [bonxai, navmap]
+    bonxai:
+      freq: 1.0
+      plugin: easynav_bonxai_maps_manager/BonxaiMapsManager
+      package: easynav_playground_summit_worlds
+      # Occupied 0.3 m voxels (centroids) of two_floors_map.pcd
+      bonxai_path_file: maps/two_floors_bonxai.pcd
+    navmap:
+      freq: 1.0
+      plugin: easynav_navmap_maps_manager/NavMapMapsManager
+      package: easynav_playground_summit_worlds
+      # Multi-level NavMap (from_points: 0.3 m cells, max_dz 0.35, max_slope_deg 40, max_hole_area 10,
+      # min_surface_area 4) over navmap_data/clouds/two_floors_map_noghosts.pcd
+      navmap_path_file: maps/two_floors.navmap
+
+planner_node:
+  ros__parameters:
+    planner_types: [dummy]
+    dummy:
+      freq: 1.0
+      plugin: easynav_planner/DummyPlanner
+
+sensors_node:
+  ros__parameters:
+    forget_time: 0.5
+    perception_default_frame: odom
+
+recovery_node:
+  ros__parameters:
+    recovery_manager:
+      plugin: easynav_recovery/DummyRecoveryManager
+
+system_node:
+  ros__parameters:
+    use_real_time: true
+    position_tolerance: 0.3
+    angle_tolerance: 0.15
