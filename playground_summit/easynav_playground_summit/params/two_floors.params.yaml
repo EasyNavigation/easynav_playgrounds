@@ -22,14 +22,14 @@ maps_manager_node:
       freq: 1.0
       plugin: easynav_bonxai_maps_manager/BonxaiMapsManager
       package: easynav_playground_summit_worlds
-      # Occupied 0.3 m voxels (centroids) of two_floors_map.pcd
+      # Occupied 0.3 m voxels (centroids) of the mapping run's scans with free-space carving
       bonxai_path_file: maps/two_floors_bonxai.pcd
     navmap:
       freq: 1.0
       plugin: easynav_navmap_maps_manager/NavMapMapsManager
       package: easynav_playground_summit_worlds
-      # Multi-level NavMap (from_points: 0.3 m cells, max_dz 0.35, max_slope_deg 40, max_hole_area 10,
-      # min_surface_area 4) over navmap_data/clouds/two_floors_map_noghosts.pcd
+      # Multi-level NavMap (from_points with viewpoints: 0.3 m cells, max_dz 0.35, max_slope_deg 40,
+      # max_hole_area 10, min_surface_area 4) over the mapping run's scans and sensor poses
       navmap_path_file: maps/two_floors.navmap
 
 planner_node:
