@@ -104,7 +104,8 @@ localizer_node:
       freq: 5.0
       reseed_freq: 1.0
       plugin: easynav_navmap_localizer/AMCLLocalizer
-      downsampled_cloud_size: 10.0
+      downsampled_cloud_size: 0.3   # about the Bonxai map's voxels: enough points to tell poses apart
+      odom_slip_fraction: 0.2       # rough terrain: the wheels may slip, even spin in place
       num_particles: 100
       noise_translation: 0.1
       noise_rotation: 0.03
@@ -134,7 +135,8 @@ maps_manager_node:
       freq: 10.0 
       plugin: easynav_bonxai_maps_manager/BonxaiMapsManager
       package: easynav_playground_summit_worlds
-      bonxai_path_file: maps/excavation_urjc.pcd
+      # Sampled from the world's collision mesh (the scanned cloud was ~0.8 m off)
+      bonxai_path_file: maps/excavation_urjc_world.pcd
     navmap:
       freq: 10.0 
       plugin: easynav_navmap_maps_manager/NavMapMapsManager
@@ -204,6 +206,7 @@ system_node:
     # filters the 3D lidar and depth camera clouds in every cycle.
     rt_freq: 50.0
     position_tolerance: 0.3
+    height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15
 
 recovery_node:

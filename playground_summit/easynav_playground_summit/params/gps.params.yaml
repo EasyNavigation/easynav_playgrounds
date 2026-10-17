@@ -203,6 +203,7 @@ system_node:
     # filters the 3D lidar and depth camera clouds in every cycle.
     rt_freq: 50.0
     position_tolerance: 0.3
+    height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15
 
 recovery_node:

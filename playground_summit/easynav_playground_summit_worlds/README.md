@@ -44,6 +44,10 @@ The simulated Summit XL publishes:
 
 It also publishes TF, and listens on `/cmd_vel` (`geometry_msgs/Twist`). `twist_stamper` forwards it to the diff drive controller, which takes `TwistStamped` on `/robotnik_base_control/cmd_vel`.
 
+## The excavation's stitched tiles
+
+The excavation's terrain is a set of photogrammetry tiles (about 30 x 38 m) that share no vertices: each one ends in a vertical skirt under the ground, and the rims of neighbouring tiles were at slightly different heights. Each seam was a step, up to 0.5 m, that could stop the Summit XL. Both meshes (`models/urjc_excavation/meshes/URJC_excavation.stl`, the collision mesh, and `URJC_excavation.dae`, the visual one) have their tiles stitched by `tools/stitch_rims.py`, run twice: the rim vertices of different tiles closer than 0.35 m meet halfway, in height and across, when they differ by less than 0.5 m. Nothing else moves. Seam steps over 0.15 m went from 487 to 225 (0.1 m cells of the top surface); the one at (-33.7, 11.7), which stopped the robot, is gone.
+
 ## Building the excavation maps
 
 `maps/excavation_urjc_world.pcd` samples the world's collision mesh (`models/urjc_excavation/meshes/URJC_excavation.stl`) uniformly, 20 points/m², in the map frame: the mesh is raised 5.77 m so that z = 0 is the terrain under the spawn point. `maps/excavation_urjc.navmap` meshes that cloud with `navmap_ros::from_points` at 1 m, dropping surfaces smaller than 4 m². Against the collision mesh its height error is 1 cm (median), 6 cm (p90). `maps/excavation_urjc.pcd`, the cloud the Bonxai map is built from, is unchanged.
@@ -88,7 +92,7 @@ Then copy `warehouse.pcd`, `warehouse.pgm` and `warehouse.yaml` to `maps/`. Run 
 
 The launchers, bridge configuration and maps were developed by Francisco Martín Rico at the [Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/) (Universidad Rey Juan Carlos), under Apache-2.0; see [LICENSE](./LICENSE). It includes third-party worlds under their own licenses:
 
-- The URJC excavation world (`worlds/urjc_excavation.world`, `models/urjc_excavation/`) comes from [urjc-excavation-world](https://github.com/juanscelyg/urjc-excavation-world) (`main` branch). Its license file is GPL-3.0; see [models/urjc_excavation/LICENSE](./models/urjc_excavation/LICENSE).
+- The URJC excavation world (`worlds/urjc_excavation.world`, `models/urjc_excavation/`) comes from [urjc-excavation-world](https://github.com/juanscelyg/urjc-excavation-world) (`main` branch). Its license file is GPL-3.0; see [models/urjc_excavation/LICENSE](./models/urjc_excavation/LICENSE). Its meshes are modified here: their tiles are stitched (see above).
 - The small warehouse world (`worlds/small_warehouse.world`, `models/aws_robomaker_warehouse_*`) comes from [aws-robomaker-small-warehouse-world](https://github.com/aws-robotics/aws-robomaker-small-warehouse-world) (`ros1` branch), under the MIT-0 license; see [models/LICENSE-aws-robomaker](./models/LICENSE-aws-robomaker). Changes for Gazebo Sim: the roof was removed (the lidar and the GUI camera see inside), the Gazebo Sim system plugins, spherical coordinates and a sun were added, the physics step is 5 ms, and the floor model's (`GroundB`) invalid inertia was fixed.
 - The warehouse maps (`maps/warehouse.*`) were generated from that world with `navmap_tools`.
 - The parking garage world (`worlds/parking_garage*.world`, `worlds/parking_garage.sdf`, `models/parking_garage/`, `models/parking_garage_ground_plane/` and the `models/*_cube/` models) comes from [parking-garage-world](https://github.com/juanscelyg/parking-garage-world). Its license file is GPL-3.0; see [models/parking_garage/LICENSE](./models/parking_garage/LICENSE). The garage model is based on a model by michaelwjl on [free3d.com](https://free3d.com/3d-model/paking-lot-182.html).

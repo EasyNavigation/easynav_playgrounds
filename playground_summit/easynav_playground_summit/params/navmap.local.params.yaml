@@ -81,4 +81,5 @@ system_node:
       inscribed_radius: 0.7
       height: 1.0
     position_tolerance: 0.3
+    height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15

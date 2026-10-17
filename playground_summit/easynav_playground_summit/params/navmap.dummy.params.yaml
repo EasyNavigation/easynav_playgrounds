@@ -53,4 +53,5 @@ system_node:
     use_sim_time: true
     use_real_time: true
     position_tolerance: 0.3
+    height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15
