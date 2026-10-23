@@ -33,6 +33,8 @@ launch:
 # Gazebo is started without a shell (gz_sim.launch.py uses one) and the GUI client runs
 # directly ("gz sim -g" runs it as a child that outlives a SIGTERM), so the launch's
 # signals reach both: on shutdown, no server or GUI window is left behind.
+# The client lives in opt/gz_sim_vendor/libexec/gz/sim/ when gz_sim_vendor builds Gazebo
+# (apt) and in libexec/gz/sim<N>/ when it wraps a system Gazebo (RoboStack/conda-forge).
 - executable:
     name: gz_server
     cmd: gz sim -r -s $(var world)
@@ -40,7 +42,7 @@ launch:
 - executable:
     if: $(var gui)
     name: gz_gui
-    cmd: $(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client
+    cmd: $(eval "(__import__('glob').glob('$(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client') + sorted(__import__('glob').glob('$(find-pkg-prefix gz_sim_vendor)/libexec/gz/sim*/gz-sim-gui-client')) + ['gz-sim-gui-client'])[0]")
     output: screen
 
 - node:
