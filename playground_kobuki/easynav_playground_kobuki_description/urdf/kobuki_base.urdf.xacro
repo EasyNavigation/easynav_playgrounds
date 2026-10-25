@@ -72,9 +72,11 @@
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </visual>
+      <!-- A sphere touches the floor on the wheel's mid plane: a cylinder's contact
+           jumps between its rims and odometry drifts (8 % when spinning in place). -->
       <collision>
         <geometry>
-          <cylinder length="0.0206" radius="0.035"/>
+          <sphere radius="0.035"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
@@ -100,9 +102,11 @@
         </geometry>
         <origin xyz="0 0 0" rpy="0 0 0"/>
       </visual>
+      <!-- A sphere touches the floor on the wheel's mid plane: a cylinder's contact
+           jumps between its rims and odometry drifts (8 % when spinning in place). -->
       <collision>
         <geometry>
-          <cylinder length="0.0206" radius="0.035"/>
+          <sphere radius="0.035"/>
         </geometry>
         <origin rpy="0 0 0" xyz="0 0 0"/>
       </collision>
