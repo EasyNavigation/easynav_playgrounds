@@ -33,7 +33,7 @@ ros2 launch easynav_playground_kobuki_worlds gazebo_sim.launch.yaml
 ros2 launch easynav_playground_kobuki_worlds multirobot_gazebo_sim.launch.yaml
 ```
 
-To add a robot to a running simulation, use `kobuki.launch.yaml` with a `namespace` and a spawn pose (`x`, `y`, `Y`...).
+To add a robot to a running simulation, use `kobuki.launch.yaml` with a `namespace` and a spawn pose (`x`, `y`, `Y`...). With several robots, `lidar_target:=true` gives each one a cylinder at the height of the lidar: a Kobuki's lidar otherwise sees another Kobuki only by its thin standoffs. The cylinder is visual only and lies inside the lidar's minimum range (0.17 m), so the robot's own lidar does not see it.
 
 The simulated Kobuki publishes `/scan_raw`, `/odom`, `/joint_states` and TF, and listens on `/cmd_vel`. With `camera:=true` it also publishes `/rgbd_camera/{image,depth_image,points,camera_info}`.
 

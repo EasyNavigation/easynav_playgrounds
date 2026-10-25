@@ -26,6 +26,7 @@ launch:
 - arg: {name: Y, default: '0.0'}
 - arg: {name: lidar, default: 'true', description: Enable the lidar}
 - arg: {name: lidar_range, default: '12.0', description: Maximum lidar range (m)}
+- arg: {name: lidar_target, default: 'false', description: 'A cylinder at lidar height, so other robots'' lidars see this one'}
 - arg: {name: camera, default: 'false', description: Enable the RGBD camera}
 - arg: {name: structure, default: 'true', description: Mount the hexagon plates and poles}
 - arg: {name: use_sim_time, default: 'true'}
@@ -49,7 +50,7 @@ launch:
         type: str
         value: >-
           $(command 'xacro $(find-pkg-share easynav_playground_kobuki_description)/urdf/kobuki.urdf.xacro
-          gazebo:=true lidar:=$(var lidar) lidar_range:=$(var lidar_range)
+          gazebo:=true lidar:=$(var lidar) lidar_range:=$(var lidar_range) lidar_target:=$(var lidar_target)
           camera:=$(var camera) structure:=$(var structure)
           namespace:=$(var prefix) tf_namespace:=$(var prefix)')
       - {name: use_sim_time, value: $(var use_sim_time)}
