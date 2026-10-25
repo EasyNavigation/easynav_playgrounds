@@ -10,6 +10,10 @@
   <xacro:arg name="camera" default="false" />
   <xacro:arg name="structure" default="false" />
   <xacro:arg name="lidar_range" default="12.0" />
+  <!-- A cylinder at the height of the lidar that other robots' lidars see (a Kobuki alone shows
+       them only its thin standoffs). Visual only, and inside the lidar's min range (0.17 m),
+       where its own lidar renders nothing: it does not hide anything from its own scans. -->
+  <xacro:arg name="lidar_target" default="false" />
 
   <!-- Namespace will be applied to all TF frames and topics.
        This is required if multiple robots are launched at the same time.
@@ -52,6 +56,23 @@
   <xacro:if value="$(arg lidar)">
     <xacro:include filename="$(find easynav_playground_kobuki_description)/urdf/sensors/lidar.urdf.xacro"/>
     <xacro:sensor_lidar namespace="$(arg namespace)"/>
+    <xacro:if value="$(arg lidar_target)">
+      <link name="$(arg namespace)lidar_target_link">
+        <visual>
+          <geometry>
+            <cylinder length="0.10" radius="0.15"/>
+          </geometry>
+          <material name="lidar_target_orange">
+            <color rgba="1.0 0.5 0.0 1.0"/>
+          </material>
+        </visual>
+      </link>
+      <joint name="$(arg namespace)lidar_target_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+        <parent link="$(arg namespace)laser_link"/>
+        <child link="$(arg namespace)lidar_target_link"/>
+      </joint>
+    </xacro:if>
   </xacro:if>
 
   <xacro:if value="$(arg camera)">
