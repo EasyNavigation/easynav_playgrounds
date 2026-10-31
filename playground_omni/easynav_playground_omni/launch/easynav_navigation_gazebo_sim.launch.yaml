@@ -25,12 +25,25 @@ launch:
     choice: [{value: 3w}, {value: 3w_v2}, {value: 4w}, {value: 5w}, {value: 6w}]
 - arg:
     name: params_file
-    default: $(find-pkg-share easynav_playground_omni)/params/easynav_costmap_rpp.params.yaml
+    default: $(find-pkg-share easynav_playground_omni)/params/easynav_costmap_mppi.params.yaml
     description: EasyNav ROS 2 parameters file
+- arg:
+    name: heading_mode
+    default: path
+    description: MPPI orientation while moving (params/heading_modes)
+    choice: [{value: path}, {value: goal}, {value: free}, {value: hold}, {value: fixed}]
 - arg:
     name: rviz_config
     default: $(find-pkg-share easynav_playground_omni)/rviz/easynav_costmap.rviz
     description: RViz2 configuration file
+- arg:
+    name: gui
+    default: 'true'
+    description: Set to false to run Gazebo headless
+- arg:
+    name: rviz
+    default: 'true'
+    description: Set to false not to start RViz2
 - arg:
     name: map_override_file
     default: $(find-pkg-share easynav_playground_omni)/params/map_overrides/$(var world)/map.yaml
@@ -42,6 +55,7 @@ launch:
     - {name: world, value: $(var world)}
     - {name: robot, value: $(var robot)}
     - {name: use_sim_time, value: 'true'}
+    - {name: gui, value: $(var gui)}
 
 # Give Gazebo time to come up before starting EasyNav
 - timer:
@@ -55,8 +69,10 @@ launch:
         param:
         - from: $(var params_file)
         - from: $(var map_override_file)
+        - from: $(find-pkg-share easynav_playground_omni)/params/heading_modes/$(var heading_mode).yaml
 
 - node:
+    if: $(var rviz)
     pkg: rviz2
     exec: rviz2
     output: screen

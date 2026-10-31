@@ -1,0 +1,8 @@
+# Copyright 2026 Intelligent Robotics Lab
+# SPDX-License-Identifier: Apache-2.0
+
+# MPPI orientation while moving: the robot's when the goal is received
+controller_node:
+  ros__parameters:
+    mppi:
+      heading_mode: hold

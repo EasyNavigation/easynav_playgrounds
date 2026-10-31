@@ -49,7 +49,21 @@ ros2 launch easynav_playground_omni easynav_navigation_gazebo_sim.launch.yaml wo
 ros2 launch easynav_playground_omni easynav_navigation_gazebo_sim.launch.yaml world:=maze2
 ```
 
-Other launch arguments, `params_file`, `rviz_config`, `map_override_file` and `robot`, can also be overridden.
+EasyNav drives the robot with MPPI as a holonomic robot (`motion_model: omni`): it also commands sideways velocity. The `heading_mode` argument sets its orientation while it moves:
+
+| `heading_mode` | Orientation while moving | Launcher |
+| --- | --- | --- |
+| `path` (default) | Facing along the path; it corrects sideways | `easynav_mppi_path.launch.yaml` |
+| `goal` | The goal's orientation, from the start | `easynav_mppi_goal.launch.yaml` |
+| `free` | Any: the one that costs least | `heading_mode:=free` |
+| `hold` | The robot's when the goal is received | `heading_mode:=hold` |
+| `fixed` | `heading_yaw` (1.5708 rad in `params/heading_modes/fixed.yaml`) | `heading_mode:=fixed` |
+
+```bash
+ros2 launch easynav_playground_omni easynav_mppi_goal.launch.yaml world:=maze1
+```
+
+Both reach the goal's orientation at the end. Other launch arguments, `params_file`, `rviz_config`, `map_override_file`, `robot`, `gui` (Gazebo GUI) and `rviz`, can also be overridden.
 
 The `robot` argument chooses the robot (`3w`, `3w_v2`, `4w`, `5w`, `6w`; see `easynav_playground_omni_description`), for example:
 
@@ -57,14 +71,14 @@ The `robot` argument chooses the robot (`3w`, `3w_v2`, `4w`, `5w`, `6w`; see `ea
 ros2 launch easynav_playground_omni easynav_navigation_gazebo_sim.launch.yaml robot:=5w world:=maze1
 ```
 
-All robot models share EasyNav limits of 0.6 m/s linear and 0.5 rad/s angular velocity.
+All robot models share EasyNav limits of 0.6 m/s in any direction and 0.5 rad/s angular velocity.
 
 ## Package layout
 
 | Directory | Contents |
 | --- | --- |
-| `launch/` | EasyNav launch file, in YAML |
-| `params/` | EasyNav parameters, and the map of each world (`map_overrides/<world>/map.yaml`) |
+| `launch/` | EasyNav launch files, in YAML |
+| `params/` | EasyNav parameters, the map of each world (`map_overrides/<world>/map.yaml`) and each MPPI heading mode (`heading_modes/<mode>.yaml`) |
 | `rviz/` | RViz2 configuration |
 
 ## Authors and licensing
