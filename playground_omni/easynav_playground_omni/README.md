@@ -63,7 +63,7 @@ EasyNav drives the robot with MPPI as a holonomic robot (`motion_model: omni`): 
 ros2 launch easynav_playground_omni easynav_mppi_goal.launch.yaml world:=maze1
 ```
 
-Both reach the goal's orientation at the end. Other launch arguments, `params_file`, `rviz_config`, `map_override_file`, `robot`, `gui` (Gazebo GUI) and `rviz`, can also be overridden.
+Both reach the goal's orientation at the end. Other launch arguments, `robot_params`, `params_file`, `rviz_config`, `map_override_file`, `robot`, `gui` (Gazebo GUI) and `rviz`, can also be overridden.
 
 The `robot` argument chooses the robot (`3w`, `3w_v2`, `4w`, `5w`, `6w`; see `easynav_playground_omni_description`), for example:
 
@@ -71,14 +71,14 @@ The `robot` argument chooses the robot (`3w`, `3w_v2`, `4w`, `5w`, `6w`; see `ea
 ros2 launch easynav_playground_omni easynav_navigation_gazebo_sim.launch.yaml robot:=5w world:=maze1
 ```
 
-All robot models share EasyNav limits of 0.6 m/s in any direction and 0.5 rad/s angular velocity.
+All robot models share EasyNav limits of 0.6 m/s in any direction and 0.5 rad/s angular velocity, and their shape, in `params/robots/omni.params.yaml` (`robot_params`): the launcher loads it before `params_file`, which overrides it.
 
 ## Package layout
 
 | Directory | Contents |
 | --- | --- |
 | `launch/` | EasyNav launch files, in YAML |
-| `params/` | EasyNav parameters, the map of each world (`map_overrides/<world>/map.yaml`) and each MPPI heading mode (`heading_modes/<mode>.yaml`) |
+| `params/` | EasyNav parameters, the robots' (`robots/omni.params.yaml`, shared by every model), the map of each world (`map_overrides/<world>/map.yaml`) and each MPPI heading mode (`heading_modes/<mode>.yaml`) |
 | `rviz/` | RViz2 configuration |
 
 ## Authors and licensing

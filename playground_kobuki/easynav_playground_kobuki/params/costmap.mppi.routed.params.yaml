@@ -1,16 +1,6 @@
 controller_node:
   ros__parameters:
     use_sim_time: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      max_linear_vel: 0.6
-      min_linear_vel: -0.3
-      max_angular_vel: 1.2
-      max_linear_acc: 1.0
-      max_linear_decel: 1.0
-      max_angular_acc: 2.0
-      max_angular_decel: 2.0
     controller_types: [mppi]
     mppi:
       rt_freq: 30.0
@@ -84,22 +74,14 @@ sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    sensors: [laser1]
     perception_default_frame: odom
-    laser1:
-      topic: scan_raw
-      type: sensor_msgs/msg/LaserScan
-    camera1:
-      topic: rgbd_camera/points
-      type: sensor_msgs/msg/PointCloud2
       
 system_node:
   ros__parameters:
-    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
+    # A planning margin over the robot's shape (robots/kobuki.params.yaml)
     robot_geometry:
       radius: 0.3
       inscribed_radius: 0.25  # largest circle inside the robot
-      height: 0.5
     use_sim_time: true
     use_real_time: true
     position_tolerance: 0.3

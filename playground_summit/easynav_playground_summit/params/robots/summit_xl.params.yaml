@@ -1,0 +1,40 @@
+# The Summit XL of this playground: what belongs to the robot, not to an EasyNav configuration. The
+# launchers load it before the configuration's params file, which may override any of it.
+
+/**/controller_node:
+  ros__parameters:
+    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
+    # smoother enforces them on every command published (see ControllerNode).
+    robot_limits:
+      max_linear_vel: 1.0
+      min_linear_vel: -0.2
+      max_angular_vel: 1.0
+      max_linear_acc: 0.5
+      max_linear_decel: 1.0
+      max_angular_acc: 1.0
+      max_angular_decel: 2.0
+
+/**/sensors_node:
+  ros__parameters:
+    sensors: [laser, camera, imu, gps]
+    laser:
+      topic: front_laser/points
+      type: sensor_msgs/msg/PointCloud2
+    camera:
+      topic: front_camera/depth/color/points
+      type: sensor_msgs/msg/PointCloud2
+    imu:
+      topic: imu/data
+      type: sensor_msgs/msg/Imu
+    gps:
+      topic: gps/fix
+      type: sensor_msgs/msg/NavSatFix
+
+/**/system_node:
+  ros__parameters:
+    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
+    robot_geometry:
+      height: 1.0
+      # The real shape (chassis and wheels, from the URDF), checked by MPPI as the robot turns:
+      # [x1, y1, x2, y2, ...] in base_footprint. The radii not given follow from it.
+      footprint: [0.35, 0.31, -0.39, 0.31, -0.39, -0.31, 0.35, -0.31]

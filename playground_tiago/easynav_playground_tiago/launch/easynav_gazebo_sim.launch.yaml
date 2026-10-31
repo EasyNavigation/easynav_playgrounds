@@ -14,6 +14,8 @@
 
 # Simulation + EasyNav + RViz2. The easynav_<config>.launch.yaml files include
 # this one with their own params_file and rviz_config (and params_overlay, if any).
+# robot_params, the parameters of the robot (tiago or tiago_pro), is loaded first:
+# params_file overrides it.
 
 launch:
 - arg:
@@ -31,6 +33,10 @@ launch:
 - arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
 - arg: {name: rviz, default: 'true', description: Start RViz2}
 - arg: {name: robot, default: tiago, description: tiago or tiago_pro}
+- arg:
+    name: robot_params
+    default: $(find-pkg-share easynav_playground_tiago)/params/robots/$(var robot).params.yaml
+    description: The robot's parameters (geometry, limits, sensors), loaded before params_file
 
 - include:
     file: $(find-pkg-share easynav_playground_tiago_worlds)/launch/gazebo_sim.launch.yaml
@@ -48,6 +54,7 @@ launch:
         output: screen
         on_exit: shutdown
         param:
+        - from: $(var robot_params)
         - from: $(var params_file)
         - from: $(var params_overlay)
         # The base controller (TIAGo's and TIAGo Pro's): TwistStamped commands

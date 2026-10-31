@@ -4,16 +4,6 @@
 r1/controller_node:
   ros__parameters:
     use_sim_time: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      max_linear_vel: 0.6
-      min_linear_vel: -0.3
-      max_angular_vel: 1.2
-      max_linear_acc: 1.0
-      max_linear_decel: 1.0
-      max_angular_acc: 2.0
-      max_angular_decel: 2.0
     controller_types: [rpp]
     rpp:
       rt_freq: 30.0
@@ -101,18 +91,9 @@ r1/sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    sensors: [laser1]
-    laser1:
-      topic: scan_raw
-      type: sensor_msgs/msg/LaserScan
 
 r1/system_node:
   ros__parameters:
-    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
-    robot_geometry:
-      radius: 0.178
-      inscribed_radius: 0.178  # Kobuki base is modeled as a circular cylinder
-      height: 0.5
     use_sim_time: true
     use_real_time: true
     tf_prefix: r1
@@ -198,16 +179,6 @@ r1/recovery_node:
 r2/controller_node:
   ros__parameters:
     use_sim_time: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      max_linear_vel: 0.6
-      min_linear_vel: -0.3
-      max_angular_vel: 1.2
-      max_linear_acc: 1.0
-      max_linear_decel: 1.0
-      max_angular_acc: 2.0
-      max_angular_decel: 2.0
     controller_types: [rpp]
     rpp:
       rt_freq: 30.0
@@ -295,18 +266,9 @@ r2/sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    sensors: [laser1]
-    laser1:
-      topic: scan_raw
-      type: sensor_msgs/msg/LaserScan
 
 r2/system_node:
   ros__parameters:
-    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
-    robot_geometry:
-      radius: 0.178
-      inscribed_radius: 0.178  # Kobuki base is modeled as a circular cylinder
-      height: 0.5
     use_sim_time: true
     use_real_time: true
     tf_prefix: r2

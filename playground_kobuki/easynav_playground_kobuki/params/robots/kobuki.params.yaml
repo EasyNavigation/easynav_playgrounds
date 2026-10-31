@@ -1,0 +1,36 @@
+# The Kobuki (Turtlebot2) of this playground: what belongs to the robot, not to an EasyNav
+# configuration. The launchers load it before the configuration's params file, which may override
+# any of it. /** applies it in any namespace (easynav_multirobot.launch.yaml).
+
+/**/controller_node:
+  ros__parameters:
+    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
+    # smoother enforces them on every command published (see ControllerNode).
+    robot_limits:
+      max_linear_vel: 0.6
+      min_linear_vel: -0.3
+      max_angular_vel: 1.2
+      max_linear_acc: 1.0
+      max_linear_decel: 1.0
+      max_angular_acc: 2.0
+      max_angular_decel: 2.0
+
+/**/sensors_node:
+  ros__parameters:
+    sensors: [laser1]
+    laser1:
+      topic: scan_raw
+      type: sensor_msgs/msg/LaserScan
+    # The RGBD camera, for the configurations that add it to sensors
+    camera1:
+      topic: rgbd_camera/points
+      type: sensor_msgs/msg/PointCloud2
+
+/**/system_node:
+  ros__parameters:
+    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
+    # The Kobuki base is a circular cylinder.
+    robot_geometry:
+      radius: 0.178
+      inscribed_radius: 0.178
+      height: 0.5

@@ -4,24 +4,11 @@
 controller_node:
   ros__parameters:
     use_sim_time: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      max_linear_vel: 0.6
-      min_linear_vel: -0.6     # omnidirectional: backward as well as forward
-      max_lateral_vel: 0.6
-      max_angular_vel: 0.5
-      max_linear_acc: 3.0
-      max_linear_decel: 2.5
-      max_lateral_acc: 3.0
-      max_lateral_decel: 2.5
-      max_angular_acc: 3.2
-      max_angular_decel: 3.2
     controller_types: [mppi]
     mppi:
       rt_freq: 30.0
       plugin: easynav_mppi_controller/MPPIController
-      # Holonomic: it also commands linear.y. Sampling, horizon and weights: the omni defaults.
+      # Holonomic: it also commands linear.y. Sampling, horizon and weights: the plugin defaults.
       motion_model: omni
       # Orientation while moving: path here; each launcher may load params/heading_modes/
       heading_mode: path
@@ -81,17 +68,9 @@ sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    sensors: [laser1]
-    laser1:
-      topic: scan
-      type: sensor_msgs/msg/LaserScan
 
 system_node:
   ros__parameters:
-    robot_geometry:
-      radius: 0.13
-      inscribed_radius: 0.1
-      height: 0.2
     use_sim_time: true
     use_real_time: true
     position_tolerance: 0.3

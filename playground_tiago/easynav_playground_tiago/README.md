@@ -54,6 +54,7 @@ The maps are in `easynav_playground_tiago_worlds`. The parameters are in `params
 
 | Argument | Default | Description |
 | --- | --- | --- |
+| `robot_params` | `params/robots/tiago.params.yaml` or `params/robots/tiago_pro.params.yaml` (from `robot`) | The robot's parameters, loaded before `params_file` |
 | `params_file` | Per launch file | EasyNav parameters file |
 | `rviz_config` | Per launch file | RViz2 configuration file |
 | `gui` | `true` | Set to `false` to run Gazebo headless |
@@ -64,6 +65,8 @@ For example, to run headless with your own parameters:
 ```bash
 ros2 launch easynav_playground_tiago easynav_costmap_rpp.launch.yaml gui:=false params_file:=/path/to/my.params.yaml
 ```
+
+The robot's own parameters (shape, velocity and acceleration limits, sensors, `use_cmd_vel_stamped`) are in `params/robots/`, not in each configuration: the launchers load `robot_params` first, then `params_file`, which overrides it. A configuration only sets what it changes on purpose (a planning margin larger than the robot, other speed limits). To adapt a configuration to another robot, give it that robot's file with `robot_params:=/path/to/my_robot.params.yaml`.
 
 ### Notes for other configurations
 
@@ -77,7 +80,7 @@ ros2 launch easynav_playground_tiago easynav_costmap_rpp.launch.yaml gui:=false 
 | Directory | Contents |
 | --- | --- |
 | `launch/` | EasyNav launch files, in YAML |
-| `params/` | EasyNav parameters, one file per configuration |
+| `params/` | EasyNav parameters, one file per configuration, and the robot's in `robots/` |
 | `rviz/` | RViz2 configurations |
 
 ## Authors and licensing

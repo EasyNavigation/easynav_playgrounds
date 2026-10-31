@@ -1,19 +1,6 @@
 controller_node:
   ros__parameters:
     use_sim_time: true
-    # TwistStamped on cmd_vel_stamped, remapped to /mobile_base_controller/cmd_vel by the launcher
-    use_cmd_vel_stamped: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      # Within mobile_base_controller's limits (1.0 / -0.2 m/s, 1.05 rad/s, 0.5 m/s2, 1.05 rad/s2)
-      max_linear_vel: 0.5
-      min_linear_vel: -0.2
-      max_angular_vel: 1.0
-      max_linear_acc: 0.5
-      max_linear_decel: 0.5
-      max_angular_acc: 1.0
-      max_angular_decel: 1.0
     controller_types: [rpp]
     rpp:
       rt_freq: 30.0
@@ -104,18 +91,9 @@ sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    sensors: [laser1]
-    laser1:
-      topic: scan_raw
-      type: sensor_msgs/msg/LaserScan
 
 system_node:
   ros__parameters:
-    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
-    robot_geometry:
-      radius: 0.3              # pmb2 base (0.27 m) with the arm tucked
-      inscribed_radius: 0.27
-      height: 1.4              # head with the torso up
     use_sim_time: true
     use_real_time: true
     position_tolerance: 0.3

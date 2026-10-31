@@ -70,6 +70,7 @@ All of them use the `maps/home.map` simple map.
 
 | Argument | Default | Description |
 | --- | --- | --- |
+| `robot_params` | `params/robots/kobuki.params.yaml` | The robot's parameters, loaded before `params_file` |
 | `params_file` | Per launch file | EasyNav parameters file |
 | `rviz_config` | Per launch file | RViz2 configuration file |
 | `gui` | `true` | Set to `false` to run Gazebo headless |
@@ -82,6 +83,8 @@ For example, to run headless with your own parameters:
 ```bash
 ros2 launch easynav_playground_kobuki easynav_costmap_rpp.launch.yaml gui:=false params_file:=/path/to/my.params.yaml
 ```
+
+The robot's own parameters (shape, velocity and acceleration limits, sensors, `use_cmd_vel_stamped`) are in `params/robots/`, not in each configuration: the launchers load `robot_params` first, then `params_file`, which overrides it. A configuration only sets what it changes on purpose (a planning margin larger than the robot, other speed limits). To adapt a configuration to another robot, give it that robot's file with `robot_params:=/path/to/my_robot.params.yaml`.
 
 ### Safety mode
 
@@ -99,7 +102,7 @@ Two Kobukis, `r1` at (0, 0) and `r2` at (2, 1), each with its own EasyNav and RV
 ros2 launch easynav_playground_kobuki easynav_multirobot.launch.yaml
 ```
 
-Each robot uses its own namespace for topics (`/r1/scan_raw`), its own TF topic (`/r1/tf`) and prefixed frames (`r1/map`, `r1/base_link`). The parameters are in `params/costmap_multirobot.params.yaml`, with one section per robot. Each section is `costmap.rpp.params.yaml` (Regulated Pure Pursuit, 0.6 m/s) with that robot's `tf_prefix` and initial pose.
+Each robot uses its own namespace for topics (`/r1/scan_raw`), its own TF topic (`/r1/tf`) and prefixed frames (`r1/map`, `r1/base_link`). The parameters are in `params/costmap_multirobot.params.yaml`, with one section per robot. Each section is `costmap.rpp.params.yaml` (Regulated Pure Pursuit) with that robot's `tf_prefix` and initial pose. Both load `params/robots/kobuki.params.yaml` first: its sections (`/**/controller_node`...) apply in any namespace.
 
 ## Docker
 
@@ -110,7 +113,7 @@ Each robot uses its own namespace for topics (`/r1/scan_raw`), its own TF topic 
 | Directory | Contents |
 | --- | --- |
 | `launch/` | EasyNav launch files, in YAML (`rviz_namespaced.launch.py` opens RViz2 for a namespaced robot) |
-| `params/` | EasyNav parameters, one file per configuration |
+| `params/` | EasyNav parameters, one file per configuration, and the robot's in `robots/` |
 | `maps/` | EasyNav-specific maps: `home.map` (Simple map) and `routes_1.yaml` (routes) |
 | `rviz/` | RViz2 configurations |
 | `docker/` | Docker image and launcher |

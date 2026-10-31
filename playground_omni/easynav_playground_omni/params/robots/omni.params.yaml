@@ -1,0 +1,36 @@
+# Copyright (c) 2026 Francisco Martín Rico
+# SPDX-License-Identifier: Apache-2.0
+
+# The omnidirectional robots of this playground (3w, 3w_v2, 4w, 5w and 6w share these values):
+# what belongs to the robot, not to an EasyNav configuration. The launcher loads it before the
+# configuration's params file, which may override any of it.
+
+/**/controller_node:
+  ros__parameters:
+    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
+    # smoother enforces them on every command published (see ControllerNode).
+    robot_limits:
+      max_linear_vel: 0.6
+      min_linear_vel: -0.6     # omnidirectional: backward as well as forward
+      max_lateral_vel: 0.6
+      max_angular_vel: 0.5
+      max_linear_acc: 3.0
+      max_linear_decel: 2.5
+      max_lateral_acc: 3.0
+      max_lateral_decel: 2.5
+      max_angular_acc: 3.2
+      max_angular_decel: 3.2
+
+/**/sensors_node:
+  ros__parameters:
+    sensors: [laser1]
+    laser1:
+      topic: scan
+      type: sensor_msgs/msg/LaserScan
+
+/**/system_node:
+  ros__parameters:
+    robot_geometry:
+      radius: 0.13
+      inscribed_radius: 0.1
+      height: 0.2

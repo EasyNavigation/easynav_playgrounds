@@ -24,6 +24,10 @@ launch:
     description: Robot model to spawn
     choice: [{value: 3w}, {value: 3w_v2}, {value: 4w}, {value: 5w}, {value: 6w}]
 - arg:
+    name: robot_params
+    default: $(find-pkg-share easynav_playground_omni)/params/robots/omni.params.yaml
+    description: The robot's parameters (geometry, limits, sensors), loaded before params_file
+- arg:
     name: params_file
     default: $(find-pkg-share easynav_playground_omni)/params/easynav_costmap_mppi.params.yaml
     description: EasyNav ROS 2 parameters file
@@ -67,6 +71,7 @@ launch:
         output: screen
         on_exit: shutdown
         param:
+        - from: $(var robot_params)
         - from: $(var params_file)
         - from: $(var map_override_file)
         - from: $(find-pkg-share easynav_playground_omni)/params/heading_modes/$(var heading_mode).yaml

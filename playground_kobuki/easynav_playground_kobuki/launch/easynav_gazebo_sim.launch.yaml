@@ -13,9 +13,14 @@
 # limitations under the License.
 
 # Simulation + EasyNav + RViz2. The easynav_<config>.launch.yaml files include
-# this one with their own params_file and rviz_config.
+# this one with their own params_file and rviz_config. robot_params, the robot's
+# parameters, is loaded first: params_file overrides it.
 
 launch:
+- arg:
+    name: robot_params
+    default: $(find-pkg-share easynav_playground_kobuki)/params/robots/kobuki.params.yaml
+    description: The robot's parameters (geometry, limits, sensors), loaded before params_file
 - arg:
     name: params_file
     default: $(find-pkg-share easynav_playground_kobuki)/params/costmap.rpp.params.yaml
@@ -46,6 +51,7 @@ launch:
         output: screen
         on_exit: shutdown
         param:
+        - from: $(var robot_params)
         - from: $(var params_file)
 
 - node:

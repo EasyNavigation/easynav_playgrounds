@@ -1,0 +1,37 @@
+# The TIAGo of this playground: what belongs to the robot, not to an EasyNav configuration. The
+# launchers load it before the configuration's params file, which may override any of it.
+
+/**/controller_node:
+  ros__parameters:
+    # TIAGo's base controller takes TwistStamped (remapped by the launchers)
+    use_cmd_vel_stamped: true
+    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
+    # smoother enforces them on every command published (see ControllerNode).
+    robot_limits:
+      # Within mobile_base_controller's limits (1.0 / -0.2 m/s, 1.05 rad/s, 0.5 m/s2, 1.05 rad/s2)
+      max_linear_vel: 0.5
+      min_linear_vel: -0.2
+      max_angular_vel: 1.0
+      max_linear_acc: 0.5
+      max_linear_decel: 0.5
+      max_angular_acc: 1.0
+      max_angular_decel: 1.0
+
+/**/sensors_node:
+  ros__parameters:
+    sensors: [laser]
+    laser:
+      topic: scan_raw
+      type: sensor_msgs/msg/LaserScan
+    # The head's RGBD camera, for the configurations that add it to sensors
+    camera:
+      topic: head_front_camera/depth_registered/points
+      type: sensor_msgs/msg/PointCloud2
+
+/**/system_node:
+  ros__parameters:
+    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
+    robot_geometry:
+      radius: 0.3              # pmb2 base (0.27 m) with the arm tucked
+      inscribed_radius: 0.27
+      height: 1.4              # head with the torso up

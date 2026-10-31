@@ -17,6 +17,10 @@
 
 launch:
 - arg:
+    name: robot_params
+    default: $(find-pkg-share easynav_playground_kobuki)/params/robots/kobuki.params.yaml
+    description: The robot's parameters (geometry, limits, sensors), loaded before params_file
+- arg:
     name: params_file
     default: $(find-pkg-share easynav_playground_kobuki)/params/costmap_multirobot.params.yaml
     description: EasyNav ROS 2 parameters file, with r1/ and r2/ sections
@@ -45,6 +49,7 @@ launch:
         output: screen
         on_exit: shutdown
         param:
+        - from: $(var robot_params)
         - from: $(var params_file)
         remap:
         - {from: /tf, to: tf}
@@ -56,6 +61,7 @@ launch:
         output: screen
         on_exit: shutdown
         param:
+        - from: $(var robot_params)
         - from: $(var params_file)
         remap:
         - {from: /tf, to: tf}

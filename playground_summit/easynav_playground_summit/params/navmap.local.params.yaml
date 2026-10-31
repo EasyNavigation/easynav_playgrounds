@@ -68,21 +68,15 @@ sensors_node:
     forget_time: 0.5
     sensors: [laser]
     perception_default_frame: odom
-    laser:
-      topic: front_laser/points
-      type: sensor_msgs/msg/PointCloud2
 
 system_node:
   ros__parameters:
     use_sim_time: true
     use_real_time: true
+    # A planning margin over the robot's shape (robots/summit_xl.params.yaml)
     robot_geometry:
       radius: 0.7
       inscribed_radius: 0.7
-      height: 1.0
-      # The real shape (chassis and wheels, from the URDF), checked by MPPI as the robot
-      # turns: [x1, y1, x2, y2, ...] in base_footprint. radius stays a planning margin.
-      footprint: [0.35, 0.31, -0.39, 0.31, -0.39, -0.31, 0.35, -0.31]
     position_tolerance: 0.3
     height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15

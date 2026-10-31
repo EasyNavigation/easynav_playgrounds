@@ -1,23 +1,6 @@
 controller_node:
   ros__parameters:
     use_sim_time: true
-    # TwistStamped on cmd_vel_stamped, remapped to /mobile_base_controller/cmd_vel by the launcher
-    use_cmd_vel_stamped: true
-    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
-    # smoother enforces them on every command published (see ControllerNode).
-    robot_limits:
-      # Within mobile_base_controller's limits (1.0 m/s on x and y, 2.09 rad/s, 1.0 m/s2,
-      # 2.09 rad/s2)
-      max_linear_vel: 0.5
-      min_linear_vel: -0.5     # omnidirectional: backward as well as forward
-      max_lateral_vel: 0.5
-      max_angular_vel: 1.0
-      max_linear_acc: 0.5
-      max_linear_decel: 0.5
-      max_lateral_acc: 0.5
-      max_lateral_decel: 0.5
-      max_angular_acc: 1.0
-      max_angular_decel: 1.0
     controller_types: [mppi]
     mppi:
       rt_freq: 30.0
@@ -86,27 +69,9 @@ sensors_node:
   ros__parameters:
     use_sim_time: true
     forget_time: 0.5
-    # Two 270-degree lasers at opposite corners of the base: together, all around the robot
-    sensors: [laser_front, laser_rear]
-    laser_front:
-      topic: scan_front_raw
-      type: sensor_msgs/msg/LaserScan
-    laser_rear:
-      topic: scan_rear_raw
-      type: sensor_msgs/msg/LaserScan
 
 system_node:
   ros__parameters:
-    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
-    robot_geometry:
-      # omni_base, 0.72 x 0.50 m (half diagonal 0.44 m); the tucked arms stay within 0.4 m.
-      # A circle around the whole base (0.88 m wide) would close the narrow passages.
-      radius: 0.4
-      inscribed_radius: 0.3    # half width (0.25 m) + 0.05 m
-      height: 1.6              # head with the torso up
-      # The base itself (0.72 x 0.50 m, from the URDF), checked by MPPI as the robot turns:
-      # [x1, y1, x2, y2, ...] in base_footprint
-      footprint: [0.36, 0.25, -0.36, 0.25, -0.36, -0.25, 0.36, -0.25]
     use_sim_time: true
     use_real_time: true
     position_tolerance: 0.3
