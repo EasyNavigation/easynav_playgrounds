@@ -15,7 +15,7 @@
   <exec_depend>easynav_costmap_planner</exec_depend>
   <exec_depend>easynav_diagnostic_recovery</exec_depend>
   <exec_depend>easynav_playground_omni_worlds</exec_depend>
-  <exec_depend>easynav_regulated_pp_controller</exec_depend>
+  <exec_depend>easynav_mppi_controller</exec_depend>
   <exec_depend>easynav_system</exec_depend>
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
