@@ -64,6 +64,7 @@ controller_node:
     mppi:
       rt_freq: 30.0 
       plugin: easynav_mppi_controller/MPPIController
+      motion_model: diff          # skid steer
     serest:
       rt_freq: 30.0 
       plugin: easynav_serest_controller/SerestController
@@ -197,6 +198,9 @@ system_node:
       # modeled as a 0.7 m circle, so plans never pass where the reflex would stop it
       inscribed_radius: 0.7
       height: 1.0
+      # The real shape (chassis and wheels, from the URDF), checked by MPPI as the robot
+      # turns: [x1, y1, x2, y2, ...] in base_footprint. radius stays a planning margin.
+      footprint: [0.35, 0.31, -0.39, 0.31, -0.39, -0.31, 0.35, -0.31]
     use_sim_time: true
     use_real_time: true
     # RT cycle at 50 Hz (default 200): no RT plugin runs faster, and the collision reflex

@@ -4,23 +4,21 @@ controller_node:
     # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
     # smoother enforces them on every command published (see ControllerNode).
     robot_limits:
-      max_linear_vel: 1.5
+      max_linear_vel: 0.6
       min_linear_vel: -0.3
-      max_angular_vel: 1.0
-      max_linear_acc: 0.5
+      max_angular_vel: 1.2
+      max_linear_acc: 1.0
       max_linear_decel: 1.0
-      max_angular_acc: 0.5
+      max_angular_acc: 2.0
       max_angular_decel: 2.0
     controller_types: [mppi]
     mppi:
-      rt_freq: 30.0 
+      rt_freq: 30.0
       plugin: easynav_mppi_controller/MPPIController
-      num_samples: 200
-      horizon_steps: 5
-      dt: 0.15
-      lambda: 1.0      
-      fov: 1.57
-      safety_radius: 0.3
+      # Differential: vx and wz, facing along the path. Sampling, horizon and weights: the
+      # plugin defaults.
+      motion_model: diff
+      safety_radius: 0.45       # robot_geometry.radius 0.3 + 0.15 m
 
 localizer_node:
   ros__parameters:

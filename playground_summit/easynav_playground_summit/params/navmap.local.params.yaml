@@ -80,6 +80,9 @@ system_node:
       radius: 0.7
       inscribed_radius: 0.7
       height: 1.0
+      # The real shape (chassis and wheels, from the URDF), checked by MPPI as the robot
+      # turns: [x1, y1, x2, y2, ...] in base_footprint. radius stays a planning margin.
+      footprint: [0.35, 0.31, -0.39, 0.31, -0.39, -0.31, 0.35, -0.31]
     position_tolerance: 0.3
     height_tolerance: 0.5    # a goal on another floor or level is not reached
     angle_tolerance: 0.15
