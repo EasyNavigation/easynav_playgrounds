@@ -1,0 +1,65 @@
+# ROS <-> Gazebo bridge for the TIAGo Pro sensors (from PAL's tiago_pro_gazebo/config).
+# Odometry comes from ros2_control (mobile_base_controller); /clock is bridged by world.launch.yaml.
+
+# Base lasers (SICK TIM571), front-right and rear-left corners
+- ros_topic_name: "scan_front_raw"
+  gz_topic_name: "/scan_front_raw"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "scan_rear_raw"
+  gz_topic_name: "/scan_rear_raw"
+  ros_type_name: "sensor_msgs/msg/LaserScan"
+  gz_type_name: "gz.msgs.LaserScan"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "scan_front_raw/points"
+  gz_topic_name: "/scan_front_raw/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "scan_rear_raw/points"
+  gz_topic_name: "/scan_rear_raw/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS
+
+# Base IMU
+- ros_topic_name: "base_imu"
+  gz_topic_name: "/base_imu"
+  ros_type_name: "sensor_msgs/msg/Imu"
+  gz_type_name: "gz.msgs.IMU"
+  direction: GZ_TO_ROS
+
+# Head RGBD camera (RealSense D435)
+- ros_topic_name: "head_front_camera/color/image_raw"
+  gz_topic_name: "/head_front_camera/color"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/color/camera_info"
+  gz_topic_name: "/head_front_camera/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/depth/image_rect_raw"
+  gz_topic_name: "/head_front_camera/depth/depth_image"
+  ros_type_name: "sensor_msgs/msg/Image"
+  gz_type_name: "gz.msgs.Image"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/depth/camera_info"
+  gz_topic_name: "/head_front_camera/depth/camera_info"
+  ros_type_name: "sensor_msgs/msg/CameraInfo"
+  gz_type_name: "gz.msgs.CameraInfo"
+  direction: GZ_TO_ROS
+
+- ros_topic_name: "head_front_camera/depth/color/points"
+  gz_topic_name: "/head_front_camera/depth/points"
+  ros_type_name: "sensor_msgs/msg/PointCloud2"
+  gz_type_name: "gz.msgs.PointCloudPacked"
+  direction: GZ_TO_ROS

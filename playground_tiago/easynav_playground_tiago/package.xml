@@ -15,6 +15,7 @@
   <exec_depend>easynav_costmap_maps_manager</exec_depend>
   <exec_depend>easynav_costmap_planner</exec_depend>
   <exec_depend>easynav_diagnostic_recovery</exec_depend>
+  <exec_depend>easynav_mppi_controller</exec_depend>
   <exec_depend>easynav_navmap_localizer</exec_depend>
   <exec_depend>easynav_navmap_maps_manager</exec_depend>
   <exec_depend>easynav_navmap_planner</exec_depend>

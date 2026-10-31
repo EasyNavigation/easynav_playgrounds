@@ -43,8 +43,12 @@ Once RViz2 is up, send a goal with the **2D Goal Pose** tool.
 | --- | --- | --- | --- | --- |
 | `easynav_costmap_rpp.launch.yaml` | Costmap from `home2.yaml` | Costmap AMCL with the base laser | Costmap | Regulated Pure Pursuit |
 | `easynav_navmap_bonxai_amcl.launch.yaml` | NavMap `home2_20cm.navmap` and Bonxai `house.pcd` | NavMap AMCL against the Bonxai map, with the base laser and the head camera | NavMap A* | Regulated Pure Pursuit |
+| `easynav_costmap_mppi_tiago_pro.launch.yaml` | Costmap from `home2.yaml` | Costmap AMCL with TIAGo Pro's two base lasers | Costmap | MPPI, holonomic |
+| `easynav_costmap_mppi_goal_tiago_pro.launch.yaml` | Costmap from `home2.yaml` | Costmap AMCL with TIAGo Pro's two base lasers | Costmap | MPPI, holonomic, keeping the goal's orientation |
 
-The maps are in `easynav_playground_tiago_worlds`. The parameters are in `params/costmap.rpp.params.yaml` and `params/navmap.bonxai.amcl.params.yaml`.
+`easynav_costmap_mppi_tiago_pro.launch.yaml` runs TIAGo Pro (omnidirectional base, two arms) instead of TIAGo, with the maps, localizer and planner of `easynav_costmap_rpp.launch.yaml`. Its controller is MPPI with `motion_model: omni`: it also commands sideways velocity (`linear.y`), facing along the path (`heading_mode: path`). `easynav_costmap_mppi_goal_tiago_pro.launch.yaml` is the same, keeping the goal's orientation from the start (`heading_mode: goal`, from `params/overlays/mppi_heading_goal.yaml`). The footprint of the base (`robot_geometry.footprint`) lets MPPI check its real shape as it turns.
+
+The maps are in `easynav_playground_tiago_worlds`. The parameters are in `params/costmap.rpp.params.yaml`, `params/navmap.bonxai.amcl.params.yaml` and `params/costmap.mppi.tiago_pro.params.yaml`.
 
 ### Launch arguments
 
@@ -64,7 +68,9 @@ ros2 launch easynav_playground_tiago easynav_costmap_rpp.launch.yaml gui:=false 
 ### Notes for other configurations
 
 - TIAGo's base laser is 0.095 m above the floor. EasyNav's localizers and obstacle filters drop points below `min_height` (0.1 m by default) as floor hits, so these configurations set `min_height: 0.05`. Do the same in your own parameters, or the laser is ignored.
-- The base takes `geometry_msgs/TwistStamped`, so EasyNav runs with `use_cmd_vel_stamped: true`, and the launch files remap `cmd_vel_stamped` to `/mobile_base_controller/cmd_vel` and `odom` to `/mobile_base_controller/odom`.
+- TIAGo Pro's two lasers (`/scan_front_raw`, `/scan_rear_raw`) are 0.21 m above the floor, each covering 270° from opposite corners of the base. Its base is 0.72 × 0.50 m: its parameters model it as a 0.4 m circle (`radius`) with a 0.3 m `inscribed_radius`.
+- `easynav_gazebo_sim.launch.yaml` takes `robot:=tiago` (default) or `robot:=tiago_pro`.
+- The base (TIAGo's and TIAGo Pro's) takes `geometry_msgs/TwistStamped`, so EasyNav runs with `use_cmd_vel_stamped: true`, and the launch files remap `cmd_vel_stamped` to `/mobile_base_controller/cmd_vel` and `odom` to `/mobile_base_controller/odom`.
 
 ## Package layout
 

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Gazebo with the small house world and TIAGo.
+# Gazebo with the small house world and TIAGo or TIAGo Pro.
 
 launch:
 - arg:
@@ -20,6 +20,7 @@ launch:
     default: $(find-pkg-share easynav_playground_tiago_worlds)/worlds/small_house.world
     description: Gazebo world file
 - arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg: {name: robot, default: tiago, description: tiago or tiago_pro}
 
 - include:
     file: $(find-pkg-share easynav_playground_tiago_worlds)/launch/world.launch.yaml
@@ -28,4 +29,4 @@ launch:
     - {name: gui, value: $(var gui)}
 
 - include:
-    file: $(find-pkg-share easynav_playground_tiago_worlds)/launch/tiago.launch.yaml
+    file: $(find-pkg-share easynav_playground_tiago_worlds)/launch/$(var robot).launch.yaml

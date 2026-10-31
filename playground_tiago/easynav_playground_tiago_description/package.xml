@@ -3,12 +3,17 @@
 <package format="3">
   <name>easynav_playground_tiago_description</name>
   <version>0.5.1</version>
-  <description>TIAGo robot description for the EasyNav playgrounds: URDF, meshes and ros2_control controllers. PAL Robotics' TIAGo, expanded from its Gazebo Harmonic ports.</description>
+  <description>TIAGo and TIAGo Pro robot descriptions for the EasyNav playgrounds: URDF, meshes and ros2_control controllers. PAL Robotics' TIAGo, expanded from its Gazebo Harmonic ports, and TIAGo Pro, expanded from PAL's packages.</description>
   <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
   <!-- The TIAGo model (urdf/, meshes/) and its controllers (config/): Copyright (c) 2022-2024
-       PAL Robotics S.L., from tiago_robot, pmb2_robot and pal_gripper (Tiago-Harmonic ports) -->
+       PAL Robotics S.L., from tiago_robot, pmb2_robot and pal_gripper (Tiago-Harmonic ports).
+       The TIAGo Pro model and its controllers: Copyright (c) 2024 PAL Robotics S.L., from
+       tiago_pro_robot, omni_base_robot, tiago_pro_head_robot, pal_sea_arm, pal_pro_gripper and
+       pal_urdf_utils; its head camera frames: Copyright 2023 RealSense, Inc., from
+       realsense2_description -->
   <license file="LICENSE">Apache-2.0</license>
   <author>PAL Robotics S.L.</author>
+  <author>RealSense, Inc.</author>
   <!-- Adapted for this simulation (see the README) -->
   <author email="fmrico@gmail.com">Francisco Martín Rico</author>
 

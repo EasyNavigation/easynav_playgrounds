@@ -13,6 +13,8 @@
   - Wheel velocity commands limited to the wheel joint limit (10.15 rad/s, 1 m/s) instead of
     1 rad/s (0.1 m/s), which made the base crawl.
   - Arm and torso start in PAL's "home" posture, arm tucked (initial_value in ros2_control).
+  - The wheels have a velocity state interface (initial value 0): without it, gz_ros2_control
+    starts their velocity commands at NaN, which Gazebo rejects until diff_drive_controller writes.
   Meshes are file:// URIs to this package's meshes/, resolved by xacro (Gazebo and RViz load them);
   the controllers come from config/tiago_controllers.yaml.
 -->
@@ -1678,6 +1680,9 @@
         <param name="max">10.152284263959391</param>
       </command_interface>
       <state_interface name="position"/>
+      <state_interface name="velocity">
+        <param name="initial_value">0.0</param>
+      </state_interface>
     </joint>
     <transmission name="wheel_right_trans">
       <plugin>transmission_interface/SimpleTransmission</plugin>
@@ -1692,6 +1697,9 @@
         <param name="max">10.152284263959391</param>
       </command_interface>
       <state_interface name="position"/>
+      <state_interface name="velocity">
+        <param name="initial_value">0.0</param>
+      </state_interface>
     </joint>
     <transmission name="wheel_left_trans">
       <plugin>transmission_interface/SimpleTransmission</plugin>

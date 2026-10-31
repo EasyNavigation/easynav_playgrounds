@@ -1,0 +1,134 @@
+# ros2_control for the simulated TIAGo Pro, loaded by gz_ros2_control and by the spawner.
+# Values from PAL's omni_base_controller_configuration, tiago_pro_controller_configuration,
+# tiago_pro_head_controller_configuration, pal_sea_arm_controller_configuration and
+# pal_pro_gripper_controller_configuration.
+
+/**/controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+    use_sim_time: true
+
+/**/joint_state_broadcaster:
+  ros__parameters:
+    type: joint_state_broadcaster/JointStateBroadcaster
+
+# PAL's omni_drive_controller is not released: ros2_controllers' mecanum controller, with the
+# same geometry and limits. It takes TwistStamped on ~/reference and publishes ~/odometry and
+# ~/tf_odometry (remapped by the spawner to ~/cmd_vel, ~/odom and /tf, as in TIAGo).
+/**/mobile_base_controller:
+  ros__parameters:
+    type: mecanum_drive_controller/MecanumDriveController
+    front_left_wheel_command_joint_name: wheel_front_left_joint
+    front_right_wheel_command_joint_name: wheel_front_right_joint
+    rear_right_wheel_command_joint_name: wheel_rear_right_joint
+    rear_left_wheel_command_joint_name: wheel_rear_left_joint
+
+    kinematics:
+      wheels_radius: 0.0762
+      # Half wheelbase (0.244) + half track (0.2232)
+      sum_of_robot_center_projection_on_X_Y_axis: 0.4672
+
+    reference_timeout: 0.5
+    base_frame_id: base_footprint
+    odom_frame_id: odom
+    enable_odom_tf: true
+    pose_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+    # Not 0: a zero variance destabilizes Kalman filters
+    twist_covariance_diagonal: [0.001, 0.001, 0.001, 0.001, 0.001, 0.01]
+
+    linear.x.max_velocity: 1.0
+    linear.x.min_velocity: -1.0
+    linear.x.max_acceleration: 1.0
+    linear.x.max_deceleration: -1.0
+    linear.y.max_velocity: 1.0
+    linear.y.min_velocity: -1.0
+    linear.y.max_acceleration: 1.0
+    linear.y.max_deceleration: -1.0
+    angular.z.max_velocity: 2.09
+    angular.z.min_velocity: -2.09
+    angular.z.max_acceleration: 2.09
+    angular.z.max_deceleration: -2.09
+
+# Torso, head, arms and grippers hold their position (they would sag under gravity without a
+# controller); they move with FollowJointTrajectory goals or trajectories on ~/joint_trajectory
+/**/arm_left_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [arm_left_1_joint, arm_left_2_joint, arm_left_3_joint, arm_left_4_joint,
+             arm_left_5_joint, arm_left_6_joint, arm_left_7_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      arm_left_1_joint: {goal: 0.02}
+      arm_left_2_joint: {goal: 0.02}
+      arm_left_3_joint: {goal: 0.02}
+      arm_left_4_joint: {goal: 0.02}
+      arm_left_5_joint: {goal: 0.02}
+      arm_left_6_joint: {goal: 0.02}
+      arm_left_7_joint: {goal: 0.02}
+
+/**/arm_right_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [arm_right_1_joint, arm_right_2_joint, arm_right_3_joint, arm_right_4_joint,
+             arm_right_5_joint, arm_right_6_joint, arm_right_7_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      arm_right_1_joint: {goal: 0.02}
+      arm_right_2_joint: {goal: 0.02}
+      arm_right_3_joint: {goal: 0.02}
+      arm_right_4_joint: {goal: 0.02}
+      arm_right_5_joint: {goal: 0.02}
+      arm_right_6_joint: {goal: 0.02}
+      arm_right_7_joint: {goal: 0.02}
+
+/**/gripper_left_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [gripper_left_finger_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      gripper_left_finger_joint: {goal: 0.02}
+
+/**/gripper_right_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [gripper_right_finger_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      gripper_right_finger_joint: {goal: 0.02}
+
+/**/torso_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [torso_lift_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    constraints:
+      goal_time: 0.6
+      stopped_velocity_tolerance: 5.0
+      torso_lift_joint: {goal: 0.02}
+
+/**/head_controller:
+  ros__parameters:
+    type: joint_trajectory_controller/JointTrajectoryController
+    joints: [head_1_joint, head_2_joint]
+    command_interfaces: [position]
+    state_interfaces: [position]
+    open_loop_control: true
+    constraints:
+      goal_time: 2.0
+      stopped_velocity_tolerance: 5.0
+      head_1_joint: {goal: 0.5}
+      head_2_joint: {goal: 0.5}
