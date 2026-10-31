@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Simulation + EasyNav + RViz2. The easynav_<config>.launch.yaml files include
-# this one with their own params_file and rviz_config.
+# this one with their own params_file and rviz_config (and params_overlay, if any).
 
 launch:
 - arg:
@@ -21,16 +21,22 @@ launch:
     default: $(find-pkg-share easynav_playground_tiago)/params/costmap.rpp.params.yaml
     description: EasyNav ROS 2 parameters file
 - arg:
+    name: params_overlay
+    default: $(find-pkg-share easynav_playground_tiago)/params/overlays/none.yaml
+    description: Parameters loaded over params_file (params/overlays)
+- arg:
     name: rviz_config
     default: $(find-pkg-share easynav_playground_tiago)/rviz/easynav_costmap.rviz
     description: RViz2 configuration file
 - arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
 - arg: {name: rviz, default: 'true', description: Start RViz2}
+- arg: {name: robot, default: tiago, description: tiago or tiago_pro}
 
 - include:
     file: $(find-pkg-share easynav_playground_tiago_worlds)/launch/gazebo_sim.launch.yaml
     arg:
     - {name: gui, value: $(var gui)}
+    - {name: robot, value: $(var robot)}
 
 # Give Gazebo time to come up before starting EasyNav
 - timer:
@@ -43,8 +49,9 @@ launch:
         on_exit: shutdown
         param:
         - from: $(var params_file)
-        # TIAGo's base controller: TwistStamped commands (use_cmd_vel_stamped in the params
-        # file) and its odometry
+        - from: $(var params_overlay)
+        # The base controller (TIAGo's and TIAGo Pro's): TwistStamped commands
+        # (use_cmd_vel_stamped in the params file) and its odometry
         remap:
         - {from: cmd_vel_stamped, to: /mobile_base_controller/cmd_vel}
         - {from: odom, to: /mobile_base_controller/odom}

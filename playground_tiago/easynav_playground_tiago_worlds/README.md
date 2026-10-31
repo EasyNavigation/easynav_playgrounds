@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # EasyNav TIAGo Playground: worlds
 
-Gazebo simulation (Harmonic or newer) of PAL Robotics' TIAGo in the AWS RoboMaker small house: the world and its models, the maps of the house, and the launchers that start Gazebo and spawn TIAGo (robot state publisher, ros2_control controllers and ROS–Gazebo bridge). It does not depend on EasyNav: `easynav_playground_tiago` adds the navigation.
+Gazebo simulation (Harmonic or newer) of PAL Robotics' TIAGo and TIAGo Pro in the AWS RoboMaker small house: the world and its models, the maps of the house, and the launchers that start Gazebo and spawn either robot (robot state publisher, ros2_control controllers and ROS–Gazebo bridge). It does not depend on EasyNav: `easynav_playground_tiago` adds the navigation.
 
 ## Supported ROS 2 distributions
 
@@ -28,6 +28,8 @@ To run Gazebo and TIAGo without EasyNav or RViz2:
 ```bash
 ros2 launch easynav_playground_tiago_worlds gazebo_sim.launch.yaml
 ```
+
+`robot:=tiago_pro` runs TIAGo Pro instead (see [TIAGo Pro](#tiago-pro) below); TIAGo is the default.
 
 `tiago.launch.yaml` spawns TIAGo in a running simulation (`x`, `y`, `z`, `Y` set the pose). The arm starts tucked, in PAL's `home` posture.
 
@@ -64,6 +66,43 @@ ros2 topic pub --once /head_controller/joint_trajectory trajectory_msgs/msg/Join
   "{joint_names: [head_1_joint, head_2_joint], points: [{positions: [0.0, -0.6], time_from_start: {sec: 1}}]}"
 ```
 
+## TIAGo Pro
+
+```bash
+ros2 launch easynav_playground_tiago_worlds gazebo_sim.launch.yaml robot:=tiago_pro
+```
+
+`tiago_pro.launch.yaml` spawns TIAGo Pro in a running simulation (`x`, `y`, `z`, `Y` set the pose). The arms start tucked, in PAL's `home` posture.
+
+### Topics
+
+| Topic | Type | Content |
+| --- | --- | --- |
+| `/scan_front_raw`, `/scan_rear_raw` | `sensor_msgs/LaserScan` | Base lasers (SICK TIM571), front-right and rear-left corners, 270° each |
+| `/scan_front_raw/points`, `/scan_rear_raw/points` | `sensor_msgs/PointCloud2` | Base lasers, as clouds |
+| `/base_imu` | `sensor_msgs/Imu` | Base IMU |
+| `/head_front_camera/color/image_raw`, `.../color/camera_info` | `sensor_msgs/Image`, `CameraInfo` | Head camera (RealSense D435), color |
+| `/head_front_camera/depth/image_rect_raw`, `.../depth/camera_info`, `.../depth/color/points` | `sensor_msgs/Image`, `CameraInfo`, `PointCloud2` | Head camera, depth |
+| `/mobile_base_controller/odom` | `nav_msgs/Odometry` | Wheel odometry (also the `odom` → `base_footprint` TF) |
+| `/joint_states`, `/tf`, `/tf_static` | | Joints and TF |
+
+The color image is in the optical frame `head_front_camera_color_optical_frame`; the depth cloud is in `head_front_camera_depth_frame` (x forward).
+
+### Moving the robot
+
+The base is omnidirectional. As TIAGo's, it listens on `/mobile_base_controller/cmd_vel` (`geometry_msgs/TwistStamped`) and publishes `/mobile_base_controller/odom`, and it also takes `linear.y` (sideways, positive to the left). Its controller is ros2_controllers' `mecanum_drive_controller`, whose `~/reference`, `~/odometry` and `~/tf_odometry` topics the launcher renames to `~/cmd_vel`, `~/odom` and `/tf`. For instance, with the keyboard (shift moves sideways):
+
+```bash
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p stamped:=true -r cmd_vel:=/mobile_base_controller/cmd_vel
+```
+
+The torso, head, arms and grippers have `joint_trajectory_controller`s: `torso_controller`, `head_controller`, `arm_left_controller`, `arm_right_controller`, `gripper_left_controller` and `gripper_right_controller`, with the same interface as TIAGo's. For example, to open the left gripper:
+
+```bash
+ros2 topic pub --once /gripper_left_controller/joint_trajectory trajectory_msgs/msg/JointTrajectory \
+  "{joint_names: [gripper_left_finger_joint], points: [{positions: [0.04], time_from_start: {sec: 1}}]}"
+```
+
 ## Maps
 
 The costmap (`maps/home2.yaml`, 5 cm) is the house map shared with `easynav_playground_kobuki`. The other two maps were generated with NavMap's `navmap_tools`:
@@ -91,13 +130,13 @@ The costmap (`maps/home2.yaml`, 5 cm) is the house map shared with `easynav_play
 
 | Directory | Contents |
 | --- | --- |
-| `launch/` | `gazebo_sim` (world and TIAGo), `world` (Gazebo with the house), `tiago` (spawns TIAGo in a running simulation), in YAML |
+| `launch/` | `gazebo_sim` (world and TIAGo or TIAGo Pro), `world` (Gazebo with the house), `tiago` and `tiago_pro` (spawn the robot in a running simulation), in YAML |
 | `config/bridge/` | ROS–Gazebo bridge topics |
 | `maps/` | `home2.yaml` (occupancy grid, 5 cm), `home2_20cm.navmap` (NavMap) and `house.pcd` (Bonxai) |
 | `worlds/`, `models/`, `photos/` | Small house world |
 
 ## Authors and licensing
 
-The launchers, bridge configuration and maps were developed by Francisco Martín Rico at the [Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/) (Universidad Rey Juan Carlos), under Apache-2.0; see [LICENSE](./LICENSE). The bridge topics come from PAL Robotics' `tiago_bringup` (Copyright (c) 2022-2024 PAL Robotics S.L., Apache-2.0).
+The launchers, bridge configuration and maps were developed by Francisco Martín Rico at the [Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/) (Universidad Rey Juan Carlos), under Apache-2.0; see [LICENSE](./LICENSE). The bridge topics come from PAL Robotics' `tiago_bringup` and, for TIAGo Pro, `tiago_pro_gazebo` in [tiago_pro_simulation](https://github.com/pal-robotics/tiago_pro_simulation) (Copyright (c) 2022-2024 PAL Robotics S.L., Apache-2.0).
 
 The small house world (`worlds/`, `models/`, `photos/`) comes from [aws-robomaker-small-house-world](https://github.com/IntelligentRoboticsLabs/aws-robomaker-small-house-world) (`ros2` branch), under the MIT No Attribution license; see [models/LICENSE](./models/LICENSE).

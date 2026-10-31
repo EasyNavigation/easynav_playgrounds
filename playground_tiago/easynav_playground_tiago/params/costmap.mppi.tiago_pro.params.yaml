@@ -1,0 +1,189 @@
+controller_node:
+  ros__parameters:
+    use_sim_time: true
+    # TwistStamped on cmd_vel_stamped, remapped to /mobile_base_controller/cmd_vel by the launcher
+    use_cmd_vel_stamped: true
+    # Robot velocity/acceleration limits: the controller plugins use them, and the velocity
+    # smoother enforces them on every command published (see ControllerNode).
+    robot_limits:
+      # Within mobile_base_controller's limits (1.0 m/s on x and y, 2.09 rad/s, 1.0 m/s2,
+      # 2.09 rad/s2)
+      max_linear_vel: 0.5
+      min_linear_vel: -0.5     # omnidirectional: backward as well as forward
+      max_lateral_vel: 0.5
+      max_angular_vel: 1.0
+      max_linear_acc: 0.5
+      max_linear_decel: 0.5
+      max_lateral_acc: 0.5
+      max_lateral_decel: 0.5
+      max_angular_acc: 1.0
+      max_angular_decel: 1.0
+    controller_types: [mppi]
+    mppi:
+      rt_freq: 30.0
+      plugin: easynav_mppi_controller/MPPIController
+      # Holonomic: the controller also commands linear.y (the mecanum base takes it). The
+      # weights and the sampling are the omni defaults.
+      motion_model: omni
+      # Facing along the path, so the head camera looks ahead; it corrects sideways
+      heading_mode: path
+      safety_radius: 0.55       # footprint's radius 0.44 + 0.11 m
+      z_min_filter: 0.05        # the base lasers are 0.21 m above the floor
+      xy_goal_tolerance: 0.1
+      yaw_goal_tolerance: 0.105
+
+localizer_node:
+  ros__parameters:
+    use_sim_time: true
+    localizer_types: [costmap]
+    costmap:
+      rt_freq: 50.0
+      freq: 5.0
+      reseed_freq: 1.0
+      plugin: easynav_costmap_localizer/AMCLLocalizer
+      # TIAGo Pro's base lasers are 0.21 m above the floor
+      min_height: 0.05
+      num_particles: 100
+      noise_translation: 0.05
+      noise_rotation: 0.1
+      noise_translation_to_rotation: 0.1
+      initial_pose:
+        x: 0.0
+        y: 0.1
+        yaw: 0.0
+        std_dev_xy: 0.1
+        std_dev_yaw: 0.01
+
+maps_manager_node:
+  ros__parameters:
+    use_sim_time: true
+    map_types: [costmap]
+    costmap:
+      freq: 10.0 
+      plugin: easynav_costmap_maps_manager/CostmapMapsManager
+      package: easynav_playground_tiago_worlds
+      map_path_file: maps/home2.yaml
+      filters: [obstacles, inflation]
+      obstacles:
+        plugin: easynav_costmap_maps_manager/CostmapMapsManager/ObstaclesFilter
+        min_height: 0.05  # TIAGo Pro's base lasers are 0.21 m above the floor
+      inflation:
+        plugin: easynav_costmap_maps_manager/CostmapMapsManager/InflationFilter
+        inflation_radius: 1.0
+        cost_scaling_factor: 5.0
+
+planner_node:
+  ros__parameters:
+    use_sim_time: true
+    planner_types: [simple]
+    simple:
+      freq: 0.5
+      plugin: easynav_costmap_planner/CostmapPlanner
+      cost_factor: 10.0
+      continuous_replan: true
+
+sensors_node:
+  ros__parameters:
+    use_sim_time: true
+    forget_time: 0.5
+    # Two 270-degree lasers at opposite corners of the base: together, all around the robot
+    sensors: [laser_front, laser_rear]
+    laser_front:
+      topic: scan_front_raw
+      type: sensor_msgs/msg/LaserScan
+    laser_rear:
+      topic: scan_rear_raw
+      type: sensor_msgs/msg/LaserScan
+
+system_node:
+  ros__parameters:
+    # The robot's shape, shared by every component (collision checking, inflation, recovery...).
+    robot_geometry:
+      # omni_base, 0.72 x 0.50 m (half diagonal 0.44 m); the tucked arms stay within 0.4 m.
+      # A circle around the whole base (0.88 m wide) would close the narrow passages.
+      radius: 0.4
+      inscribed_radius: 0.3    # half width (0.25 m) + 0.05 m
+      height: 1.6              # head with the torso up
+      # The base itself (0.72 x 0.50 m, from the URDF), checked by MPPI as the robot turns:
+      # [x1, y1, x2, y2, ...] in base_footprint
+      footprint: [0.36, 0.25, -0.36, 0.25, -0.36, -0.25, 0.36, -0.25]
+    use_sim_time: true
+    use_real_time: true
+    position_tolerance: 0.3
+    angle_tolerance: 0.15
+
+recovery_node:
+  ros__parameters:
+    use_sim_time: true
+    # Recovery system: a RecoveryManagerBase plugin, with its own parameters below it (for the
+    # diagnostic one: safety reflexes, evaluators, mitigations and their arbitration).
+    recovery_manager:
+      plugin: easynav_diagnostic_recovery/DiagnosticRecoveryManager
+      # Level-0 safety reflex: stops the robot on imminent collision, checked every RT cycle
+      # whoever produced cmd_vel (controller or mitigation). See docs/recoveries_easynav.md.
+      safety_reflex_types: [collision]
+      collision:
+        plugin: easynav_diagnostic_recovery/CollisionSafetyReflex
+        debug_markers: true
+        downsample_leaf_size: 0.05
+        brake_acc: 1.0
+        safety_margin: 0.05
+      # Level-1 recovery (see docs/recoveries_easynav.md). Evaluators diagnose; mitigations are
+      # tried in priority order (lower first) for each ERROR diagnostic they can handle:
+      #   specific movement fixes (10) -> terminate EasyNav on a miswired graph (100)
+      #   -> wait for a human (1000) -> cancel the mission (2000).
+      evaluator_types: [no_path, obstacle_close, controller_stuck, amcl_convergence, ros_graph]
+      no_path:
+        plugin: easynav_diagnostic_recovery/NoPathEvaluator
+      obstacle_close:
+        plugin: easynav_diagnostic_recovery/ObstacleTooCloseEvaluator
+        safe_distance: 0.45         # 0.4 m body radius + 0.05 m clearance
+        debounce_duration: 0.5      # ...for this long (s)
+      controller_stuck:
+        plugin: easynav_diagnostic_recovery/ControllerStuckEvaluator
+        linear_velocity_threshold: 0.02
+        progress_distance_threshold: 0.05
+        stuck_time_threshold: 3.0
+      amcl_convergence:
+        plugin: easynav_costmap_localizer/AmclConvergenceEvaluator
+        covariance_threshold: 1.0   # same as amcl_relocalize
+      ros_graph:
+        plugin: easynav_diagnostic_recovery/RosGraphEvaluator
+        freq: 1.0
+        startup_grace: 15.0         # s after activation for the simulator/driver to come up
+        error_debounce: 2.0
+        # Optional inputs that may legitimately have no publisher.
+        ignored_topics: ["goal_pose", "initialpose", "incoming_map", "incoming_occ_map", "incoming_pc2_map"]
+        # Tools that only watch cmd_vel: they do not count as something driving the robot.
+        ignored_consumers: ["easynav_tui_*", "_ros2cli*"]
+      mitigation_types: [retreat, amcl_relocalize, advance, shutdown, human_assistance, cancel_mission]
+      retreat:
+        plugin: easynav_diagnostic_recovery/SafeRetreatRecovery
+        priority: 10
+        safe_distance: 0.7          # > obstacle_close.safe_distance, so it does not re-trigger
+        retreat_speed: 0.1
+      amcl_relocalize:
+        plugin: easynav_costmap_localizer/AmclRelocalizeMitigation
+        priority: 10
+        covariance_threshold: 1.0
+        rotation_speed: 0.3
+        timeout: 5.0
+      advance:
+        plugin: easynav_diagnostic_recovery/AdvanceRecovery
+        priority: 10
+        advance_distance: 0.3
+        advance_speed: 0.1
+        escalate_after: 15.0        # s of repeated advances before giving up to the next rung
+        episode_gap: 10.0
+      shutdown:
+        plugin: easynav_diagnostic_recovery/ShutdownRecovery
+        priority: 100
+        handled_hardware_ids: ["ros_graph"]
+      human_assistance:
+        plugin: easynav_diagnostic_recovery/HumanAssistanceRecovery
+        priority: 1000
+        timeout: 30.0
+        ignored_hardware_ids: ["ros_graph"]
+      cancel_mission:
+        plugin: easynav_diagnostic_recovery/CancelMissionRecovery
+        priority: 2000

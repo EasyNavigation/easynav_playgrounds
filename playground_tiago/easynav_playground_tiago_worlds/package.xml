@@ -3,7 +3,7 @@
 <package format="3">
   <name>easynav_playground_tiago_worlds</name>
   <version>0.5.1</version>
-  <description>Gazebo (Harmonic or newer) simulation of TIAGo for the EasyNav playgrounds: the AWS small house world, its maps, and the launchers that spawn TIAGo with its controllers and the ROS-Gazebo bridge.</description>
+  <description>Gazebo (Harmonic or newer) simulation of TIAGo and TIAGo Pro for the EasyNav playgrounds: the AWS small house world, its maps, and the launchers that spawn TIAGo or TIAGo Pro with its controllers and the ROS-Gazebo bridge.</description>
   <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
   <!-- Launchers, bridge configuration and maps (the bridge topics come from PAL Robotics'
        tiago_bringup, Apache-2.0) -->
@@ -28,6 +28,7 @@
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>mecanum_drive_controller</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
