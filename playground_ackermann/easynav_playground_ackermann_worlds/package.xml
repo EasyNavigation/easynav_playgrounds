@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_ackermann_worlds</name>
+  <version>0.5.1</version>
+  <description>Gazebo (Harmonic or newer) simulation of a Toyota Prius (Ackermann steering) for the EasyNav playgrounds: the Sonoma Raceway, its map, and the launchers that spawn the Prius with its controllers and the ROS-Gazebo bridge.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- Launchers, bridge configuration, tools and maps -->
+  <license file="LICENSE">Apache-2.0</license>
+  <!-- Sonoma Raceway world (worlds/sonoma_raceway.sdf), from Juan S. Cely's easynav_wheels_worlds -->
+  <license file="worlds/LICENSE">GPL-3.0-only</license>
+  <!-- Sonoma Raceway model (models/sonoma_raceway/), from Open Robotics' model in Gazebo Fuel -->
+  <license file="models/sonoma_raceway/LICENSE">CC0-1.0</license>
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+  <author>Juan Sebastián Cely Gutierrez (the Sonoma Raceway world)</author>
+  <author>Open Robotics (the Sonoma Raceway model)</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>ackermann_steering_controller</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>easynav_playground_ackermann_description</exec_depend>
+  <exec_depend>gz_ros2_control</exec_depend>
+  <exec_depend>gz_sim_vendor</exec_depend>
+  <exec_depend>joint_state_broadcaster</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>twist_stamper</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,50 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The UFO with EasyNav: GPS fusion, the town's Bonxai map, A* in 3D and the MPC (aerial model).
+# Send goals with RViz2's "3D Goal Pose" tool.
+
+launch:
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_aerial)/params/mpc.params.yaml
+    description: EasyNav ROS 2 parameters file
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg: {name: rviz, default: 'true', description: Start RViz2}
+
+- include:
+    file: $(find-pkg-share easynav_playground_aerial_worlds)/launch/gazebo_sim.launch.yaml
+    arg:
+    - {name: gui, value: $(var gui)}
+
+# Give Gazebo time to come up before starting EasyNav
+- timer:
+    period: 5.0
+    children:
+    - node:
+        pkg: easynav_system
+        exec: system_main
+        output: screen
+        on_exit: shutdown
+        param:
+        - from: $(var params_file)
+
+- node:
+    if: $(var rviz)
+    pkg: rviz2
+    exec: rviz2
+    output: screen
+    args: -d $(find-pkg-share easynav_playground_aerial)/rviz/ufo_easynav.rviz
+    param:
+    - {name: use_sim_time, value: true}

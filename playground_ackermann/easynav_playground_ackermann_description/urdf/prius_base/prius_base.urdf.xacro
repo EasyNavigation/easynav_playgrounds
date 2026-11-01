@@ -1,0 +1,76 @@
+<?xml version="1.0"?>
+<robot name="prius_base" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:macro name="prius_base" params="prefix">
+
+	  <!-- Robot mechanical and motor parameters -->
+	  <xacro:property name="PI" value="3.1415926535897931"/>
+	  <xacro:property name="wheel_radius" value="0.3"/>
+
+	  <!-- BASE FOOTPRINT -->
+		<link name="${prefix}base_footprint">
+		  <visual>
+			  <origin xyz="0 0 0" rpy="0 0 0" />
+			  <geometry>
+				 <box size="0.001 0.001 0.001" />
+			  </geometry>
+		  </visual>
+		</link>
+
+		<joint name="${prefix}base_footprint_joint" type="fixed">
+		  <!-- base_footprint under the rear axle: the reference point of the Ackermann kinematics and odometry -->
+		  <origin xyz="1.68 0 ${wheel_radius}" rpy="0 0 0" />
+		  <parent link="${prefix}base_footprint"/>
+		  <child link="${prefix}base_link" />
+		</joint>
+
+	  <!-- BASE_LINK -->
+        <link name="${prefix}base_link">
+			<inertial>
+		  		<mass value="1326.0" />
+		  		<origin xyz="0 -0.266 0.48" rpy="0 0 ${PI/2}"/>
+		  		<inertia  ixx="2581.13354740" ixy="0.0"  ixz="0.0"  iyy="591.30846112"  iyz="0.0"  izz="2681.95008628" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="0 0 ${PI/2}" />
+				<geometry>
+					<mesh filename="file://$(find easynav_playground_ackermann_description)/meshes/prius_base.dae"/>
+				</geometry>
+			</visual>
+			<collision>
+				<origin xyz="-0.3 0 0.6" rpy="0 0 0" />
+				<geometry>
+					<box size="4.6182 2.0123 1.3866"/>
+				</geometry>
+			</collision>
+        </link>
+
+		<joint name="${prefix}base_interior_joint" type="fixed">
+		  <origin xyz="0 0 ${wheel_radius}" rpy="0 0 0" />
+		  <parent link="${prefix}base_link"/>
+		  <child link="${prefix}base_interior_link" />
+		</joint>
+
+	  <!-- BASE_INTERIOR -->
+        <link name="${prefix}base_interior_link">
+			<inertial>
+		  		<mass value="1.0" />
+		  		<origin xyz="0 0 0" rpy="0 0 0"/>
+		  		<inertia  ixx="0.13354740" ixy="0.0"  ixz="0.0"  iyy="0.30846112"  iyz="0.0"  izz="0.95008628" />
+			</inertial>
+			<visual>
+				<origin xyz="-0.695 0 0.275" rpy="0 0 0" />
+				<geometry>
+					<mesh filename="file://$(find easynav_playground_ackermann_description)/meshes/prius_interior.dae"/>
+				</geometry>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="0 0 0" />
+				<geometry>
+					<box size="0.1 0.1 0.1"/>
+				</geometry>
+			</collision>
+        </link>
+
+  </xacro:macro>
+</robot>
