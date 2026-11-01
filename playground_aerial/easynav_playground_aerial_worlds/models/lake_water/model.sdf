@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<sdf version="1.9">
+  <model name="lake_water">
+    <static>true</static>
+    <link name="link">
+      <visual name="visual">
+        <cast_shadows>false</cast_shadows>
+        <geometry>
+          <plane><normal>0 0 1</normal><size>1800 3500</size></plane>
+        </geometry>
+        <material>
+          <ambient>0.1 0.25 0.35 1</ambient>
+          <diffuse>0.1 0.3 0.45 1</diffuse>
+          <specular>0.5 0.5 0.5 1</specular>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

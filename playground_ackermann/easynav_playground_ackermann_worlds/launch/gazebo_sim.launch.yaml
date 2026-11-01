@@ -1,0 +1,40 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Gazebo with the Sonoma Raceway world and the Prius, on the start line.
+
+launch:
+- arg:
+    name: world
+    default: $(find-pkg-share easynav_playground_ackermann_worlds)/worlds/sonoma_raceway.sdf
+    description: Gazebo world file
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg: {name: x, default: '287.0'}
+- arg: {name: y, default: '-142.0'}
+- arg: {name: z, default: '3.0'}
+- arg: {name: yaw, default: '2.5'}
+
+- include:
+    file: $(find-pkg-share easynav_playground_ackermann_worlds)/launch/world.launch.yaml
+    arg:
+    - {name: world, value: $(var world)}
+    - {name: gui, value: $(var gui)}
+
+- include:
+    file: $(find-pkg-share easynav_playground_ackermann_worlds)/launch/prius.launch.yaml
+    arg:
+    - {name: x, value: $(var x)}
+    - {name: y, value: $(var y)}
+    - {name: z, value: $(var z)}
+    - {name: yaw, value: $(var yaw)}

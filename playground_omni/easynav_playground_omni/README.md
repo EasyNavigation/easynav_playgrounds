@@ -63,7 +63,15 @@ EasyNav drives the robot with MPPI as a holonomic robot (`motion_model: omni`): 
 ros2 launch easynav_playground_omni easynav_mppi_goal.launch.yaml world:=maze1
 ```
 
-Both reach the goal's orientation at the end. Other launch arguments, `params_file`, `rviz_config`, `map_override_file`, `robot`, `gui` (Gazebo GUI) and `rviz`, can also be overridden.
+Both reach the goal's orientation at the end.
+
+The MPC controller also drives the robot as a holonomic robot (`motion_model: omni`, `params/easynav_costmap_mpc.params.yaml`), facing along the path:
+
+```bash
+ros2 launch easynav_playground_omni easynav_mpc_path.launch.yaml world:=maze1
+```
+
+Other launch arguments, `params_file`, `rviz_config`, `map_override_file`, `robot`, `gui` (Gazebo GUI) and `rviz`, can also be overridden.
 
 The `robot` argument chooses the robot (`3w`, `3w_v2`, `4w`, `5w`, `6w`; see `easynav_playground_omni_description`), for example:
 

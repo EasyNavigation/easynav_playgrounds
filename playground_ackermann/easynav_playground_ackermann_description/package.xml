@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_ackermann_description</name>
+  <version>0.5.1</version>
+  <description>Toyota Prius (Ackermann steering) robot description for the EasyNav playgrounds: URDF, meshes and ros2_control controllers, from prius_autonomous_car.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- The Prius description (urdf/, config/), from Juan S. Cely's prius_autonomous_car -->
+  <license file="LICENSE-GPL">GPL-3.0-only</license>
+  <!-- The meshes (meshes/), from Open Robotics' Prius Hybrid model in Gazebo Fuel -->
+  <license file="LICENSE">CC0-1.0</license>
+  <author>Juan Sebastián Cely Gutierrez</author>
+  <author>Open Robotics (the meshes)</author>
+  <!-- Adapted for this simulation (see the README) -->
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
