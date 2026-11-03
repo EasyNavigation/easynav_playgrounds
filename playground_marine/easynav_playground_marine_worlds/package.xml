@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_marine_worlds</name>
+  <version>0.1.0</version>
+  <description>The marine simulation: a Gazebo world with water and a boat or a submarine in it, with their autopilots and the bridge to ROS. The world is a synthetic sea, generated offline. Needs only Gazebo and ros_gz; no EasyNav, no BigMap, no NavMap.</description>
+  <maintainer email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</maintainer>
+  <license file="LICENSE">Apache-2.0</license>
+  <author email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>easynav_playground_marine_description</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <!-- the autopilots and odom_to_tf -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>tf2_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
+  <!-- the launch files -->
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

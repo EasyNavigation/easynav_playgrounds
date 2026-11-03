@@ -1,0 +1,71 @@
+<!-- The WAM-V of Gazebo Fuel (OpenRobotics/wam-v, the 16 ft unmanned surface vessel of VRX: two floats, two
+     engines with a propeller each) with the plugins this model does not bring: a Thruster on each
+     propeller, Hydrodynamics (drag), and an odometry publisher. It floats by the Buoyancy plugin of the
+     world (its <enable> list has `wamv`): the floats are cylinders. It is driven by differential
+     thrust: tools/boat_cmd.py turns a Twist into
+       /boat/left_thrust   -> /model/wamv/joint/left_engine_propeller_joint/cmd_thrust    (N, positive is forward)
+       /boat/right_thrust  -> /model/wamv/joint/right_engine_propeller_joint/cmd_thrust
+     @X@ @Y@ @Z@ @YAW@ are filled in when the world is made. -->
+        <include>
+      <name>wamv</name>
+      <pose>@X@ @Y@ @Z@ 0 0 @YAW@</pose>
+      <uri>file://@MODELS@/marine_wamv/model.sdf</uri>
+
+      <plugin
+        filename="gz-sim-thruster-system"
+        name="gz::sim::systems::Thruster">
+        <namespace>wamv</namespace>
+        <joint_name>left_engine_propeller_joint</joint_name>
+        <thrust_coefficient>0.004422</thrust_coefficient>
+        <fluid_density>1000</fluid_density>
+        <propeller_diameter>0.2</propeller_diameter>
+        <max_thrust_cmd>400.0</max_thrust_cmd>
+        <min_thrust_cmd>-200.0</min_thrust_cmd>
+      </plugin>
+      <plugin
+        filename="gz-sim-thruster-system"
+        name="gz::sim::systems::Thruster">
+        <namespace>wamv</namespace>
+        <joint_name>right_engine_propeller_joint</joint_name>
+        <thrust_coefficient>0.004422</thrust_coefficient>
+        <fluid_density>1000</fluid_density>
+        <propeller_diameter>0.2</propeller_diameter>
+        <max_thrust_cmd>400.0</max_thrust_cmd>
+        <min_thrust_cmd>-200.0</min_thrust_cmd>
+      </plugin>
+
+      <!-- drag of the hulls in the water (surge, sway, heave, roll, pitch, yaw) -->
+      <plugin
+        filename="gz-sim-hydrodynamics-system"
+        name="gz::sim::systems::Hydrodynamics">
+        <link_name>base_link</link_name>
+        <xDotU>-20.0</xDotU>
+        <yDotV>-80.0</yDotV>
+        <zDotW>-80.0</zDotW>
+        <kDotP>-20.0</kDotP>
+        <mDotQ>-20.0</mDotQ>
+        <nDotR>-30.0</nDotR>
+        <xUabsU>-40.0</xUabsU>
+        <xU>-10.0</xU>
+        <yVabsV>-250.0</yVabsV>
+        <yV>-80.0</yV>
+        <zWabsW>-250.0</zWabsW>
+        <zW>-150.0</zW>
+        <kPabsP>-200.0</kPabsP>
+        <kP>-200.0</kP>
+        <mQabsQ>-200.0</mQabsQ>
+        <mQ>-200.0</mQ>
+        <nRabsR>-150.0</nRabsR>
+        <nR>-100.0</nR>
+      </plugin>
+
+      <!-- its pose in the world (nav_msgs/Odometry once bridged): the one of the world, no offset -->
+      <plugin
+        filename="gz-sim-odometry-publisher-system"
+        name="gz::sim::systems::OdometryPublisher">
+        <dimensions>3</dimensions>
+        <odom_frame>odom</odom_frame>
+        <robot_base_frame>base_footprint</robot_base_frame>
+        <odom_publish_frequency>50</odom_publish_frequency>
+      </plugin>
+    </include>

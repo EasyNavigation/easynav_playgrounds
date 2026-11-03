@@ -1,0 +1,269 @@
+<?xml version="1.0"?>
+<!-- The WAM-V of Gazebo Fuel (OpenRobotics/wam-v/4, model.sdf) with two changes, so that it floats in a
+     world whose water is the graded Buoyancy plugin (which only supports <box> and <sphere>
+     collisions: the cylinders of the floats counted for nothing and the boat sank to a third of its
+     height): the six cylinders of the floats are boxes of the same volume (same section area), and
+     the mesh paths are Fuel's, so that no mesh is copied here. The stray quote in the size of
+     `top_base` is also gone. The two joints that let the engines swing about the vertical (nothing
+     held them: the thrust swung with them and the boat yawed back and forth) are fixed: it steers
+     with the difference of the thrusts. -->
+<sdf version="1.6">
+    <!-- Basic model of the 16' WAM-V USV -->
+    <model name="wam-v_base">
+        <static>false</static>
+        <link name="base_link">
+            <enable_wind>true</enable_wind>
+            <inertial>
+                <mass>180.0</mass>
+                <inertia>
+                    <ixx>120.0</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>393</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>446.0</izz>
+                </inertia>
+            </inertial>
+            <visual name="base_visual">
+                <geometry>
+                    <mesh>
+                        <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/wam-v/4/files/meshes/WAM-V-Base.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <!-- Top base -->
+            <collision name="top_base">
+                <pose>0 -0 1.25 0 0 0</pose>
+                <geometry>
+                    <box>
+                        <size>1.85 1 0.1</size>
+                    </box>
+                </geometry>
+            </collision>
+            <!-- left base -->
+            <collision name="left_float">
+                <pose>-0.4 1.03 0.2 0 -0.000796327 0</pose>
+                <geometry>
+                    <box>
+                        <size>4 0.3545 0.3545</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="left_mid_float">
+                <pose>1.85 1.03 0.3 0 -0.190796 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.5 0.3013 0.3013</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="left_front_float">
+                <pose>2.3 1.03 0.4 0 -0.270796 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.45 0.2127 0.2127</size>
+                    </box>
+                </geometry>
+            </collision>
+            <!-- right base -->
+            <collision name="right_float">
+                <pose>-0.4 -1.03 0.2 0 -0.000796327 0</pose>
+                <geometry>
+                    <box>
+                        <size>4 0.3545 0.3545</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="right_mid_float">
+                <pose>1.85 -1.03 0.3 0 -0.190796 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.5 0.3013 0.3013</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="right_front_float">
+                <pose>2.3 -1.03 0.4 0 -0.270796 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.45 0.2127 0.2127</size>
+                    </box>
+                </geometry>
+            </collision>
+        </link>
+        <!-- left engine and thruster -->
+        <link name="left_engine_link">
+            <pose>-2.373776 1.027135 0.318237 0 0 0</pose>
+            <visual name="left_engine_visual">
+                <geometry>
+                    <mesh>
+                        <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/wam-v/4/files/meshes/engine.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <collision name="left_engine_vertical_axis_collision">
+                <pose>-0.16 0 -0.24 0 0 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.2 0.15 0.83</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="left_engine_rear_end_collision">
+                <pose>-0.34 0 0.12 0 0 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.12 0.15 0.12</size>
+                    </box>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass>15.0</mass>
+                <inertia>
+                    <ixx>0.889245</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>0.811125</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>0.078125</izz>
+                </inertia>
+            </inertial>
+        </link>
+        <link name="left_propeller_link">
+            <pose>-2.651932 1.027135 -0.191134 0 0 0</pose>
+            <visual name="left_propeller_visual">
+                <geometry>
+                    <mesh>
+                        <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/wam-v/4/files/meshes/propeller.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <collision name="left_propeller_collision">
+                <pose>-0.08 0 0 0 1.57 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.18</length>
+                        <radius>0.24</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass>0.5</mass>
+                <inertia>
+                    <ixx>0.008545</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>0.008545</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>0.0144</izz>
+                </inertia>
+            </inertial>
+        </link>
+        <joint name="left_chassis_engine_joint" type="fixed">
+            <parent>base_link</parent>
+            <child>left_engine_link</child>
+        </joint>
+        <joint name="left_engine_propeller_joint" type="revolute">
+            <axis>
+                <xyz>1 0 0</xyz>
+                <limit>
+                    <effort>100</effort>
+                    <velocity>100</velocity>
+                </limit>
+                <dynamics>
+                    <friction>0.05</friction>
+                    <damping>0.05</damping>
+                </dynamics>
+            </axis>
+            <parent>left_engine_link</parent>
+            <child>left_propeller_link</child>
+        </joint>
+        <!-- right engine and thruster -->
+        <link name="right_engine_link">
+            <pose>-2.373776 -1.027135 0.318237 0 0 0</pose>
+            <visual name="right_engine_visual">
+                <geometry>
+                    <mesh>
+                        <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/wam-v/4/files/meshes/engine.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <collision name="right_engine_vertical_axis_collision">
+                <pose>-0.16 0 -0.24 0 0 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.2 0.15 0.83</size>
+                    </box>
+                </geometry>
+            </collision>
+            <collision name="right_engine_rear_end_collision">
+                <pose>-0.34 0 0.12 0 0 0</pose>
+                <geometry>
+                    <box>
+                        <size>0.12 0.15 0.12</size>
+                    </box>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass>15.0</mass>
+                <inertia>
+                    <ixx>0.889245</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>0.811125</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>0.078125</izz>
+                </inertia>
+            </inertial>
+        </link>
+        <link name="right_propeller_link">
+            <pose>-2.651932 -1.027135 -0.191134 0 0 0</pose>
+            <visual name="right_propeller_visual">
+                <geometry>
+                    <mesh>
+                        <uri>https://fuel.gazebosim.org/1.0/OpenRobotics/models/wam-v/4/files/meshes/propeller.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <collision name="right_propeller_collision">
+                <pose>-0.08 0 0 0 1.57 0</pose>
+                <geometry>
+                    <cylinder>
+                        <length>0.18</length>
+                        <radius>0.24</radius>
+                    </cylinder>
+                </geometry>
+            </collision>
+            <inertial>
+                <mass>0.5</mass>
+                <inertia>
+                    <ixx>0.008545</ixx>
+                    <ixy>0.0</ixy>
+                    <ixz>0.0</ixz>
+                    <iyy>0.008545</iyy>
+                    <iyz>0.0</iyz>
+                    <izz>0.0144</izz>
+                </inertia>
+            </inertial>
+        </link>
+        <joint name="right_chassis_engine_joint" type="fixed">
+            <parent>base_link</parent>
+            <child>right_engine_link</child>
+        </joint>
+        <joint name="right_engine_propeller_joint" type="revolute">
+            <axis>
+                <xyz>1 0 0</xyz>
+                <limit>
+                    <effort>100</effort>
+                    <velocity>100</velocity>
+                </limit>
+                <dynamics>
+                    <friction>0.05</friction>
+                    <damping>0.05</damping>
+                </dynamics>
+            </axis>
+            <parent>right_engine_link</parent>
+            <child>right_propeller_link</child>
+        </joint>
+    </model>
+</sdf>
