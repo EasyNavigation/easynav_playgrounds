@@ -173,8 +173,6 @@ r1/recovery_node:
         plugin: easynav_costmap_localizer/AmclRelocalizeMitigation
         priority: 10
         covariance_threshold: 1.0
-        rotation_speed: 0.3
-        timeout: 5.0
       advance:
         plugin: easynav_diagnostic_recovery/AdvanceRecovery
         priority: 10
@@ -367,8 +365,6 @@ r2/recovery_node:
         plugin: easynav_costmap_localizer/AmclRelocalizeMitigation
         priority: 10
         covariance_threshold: 1.0
-        rotation_speed: 0.3
-        timeout: 5.0
       advance:
         plugin: easynav_diagnostic_recovery/AdvanceRecovery
         priority: 10
