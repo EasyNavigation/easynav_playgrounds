@@ -13,6 +13,7 @@
   <exec_depend>easynav_playground_marine_description</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_interfaces</exec_depend>
   <!-- the autopilots and odom_to_tf -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>tf2_ros</exec_depend>

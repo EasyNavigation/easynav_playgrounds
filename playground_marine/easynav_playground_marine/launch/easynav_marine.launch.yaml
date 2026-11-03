@@ -17,6 +17,7 @@
 #
 #   ros2 launch easynav_playground_marine easynav_marine.launch.yaml robot:=boat
 #   ros2 launch easynav_playground_marine easynav_marine.launch.yaml robot:=submarine
+#   ros2 launch easynav_playground_marine easynav_marine.launch.yaml robot:=boat waves:=true wave_height:=1.0
 #
 # The sea is synthetic (offline, always the same). Drive the vehicle with a Twist on /cmd_vel (see
 # the message at the start of the launch).
@@ -38,6 +39,26 @@ launch:
     name: gui
     default: 'true'
     description: Gazebo GUI
+- arg:
+    name: waves
+    default: 'false'
+    description: 'true: the vehicle moves as in a sea, and the water is drawn with the waves'
+- arg:
+    name: wave_visual
+    default: 'true'
+    description: waves:=true, draw the waves on the water (a shader); false, the water that is drawn stays flat
+- arg:
+    name: wave_height
+    default: '0.4'
+    description: waves:=true, height of the main wave in metres, crest to trough (0 to 2)
+- arg:
+    name: wave_period
+    default: '4.0'
+    description: waves:=true, period of the main wave in seconds (2 to 15)
+- arg:
+    name: wave_direction
+    default: '180'
+    description: waves:=true, where the main wave goes in degrees (0 east, 90 north, 180 to the beach)
 
 - include:
     file: $(find-pkg-share easynav_playground_marine_worlds)/launch/marine_sim.launch.py
@@ -46,3 +67,8 @@ launch:
     - {name: radius, value: $(var radius)}
     - {name: altitude, value: $(var altitude)}
     - {name: gui, value: $(var gui)}
+    - {name: waves, value: $(var waves)}
+    - {name: wave_visual, value: $(var wave_visual)}
+    - {name: wave_height, value: $(var wave_height)}
+    - {name: wave_period, value: $(var wave_period)}
+    - {name: wave_direction, value: $(var wave_direction)}

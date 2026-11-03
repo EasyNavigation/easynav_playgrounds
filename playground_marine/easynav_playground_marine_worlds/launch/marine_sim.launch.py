@@ -20,6 +20,9 @@
 * robot:=boat (the WAM-V, on the water) or robot:=submarine (the Tethys LRAUV, under it).
 * The world is a synthetic sea (tools/synthetic_sea.py): offline, always the same, written to
   ~/.ros/easynav_playground_marine/ each time.
+* waves:=true makes the vehicle move as in a sea (tools/wave_node.py): wave_height:= (m, crest to
+  trough), wave_period:= (s), wave_direction:= (degrees, where the wave goes). The water is drawn with
+  those waves, by a shader, unless wave_visual:=false (then it stays flat and only the vehicle moves).
 
 It needs Gazebo, ros_gz and numpy; nothing else.
 """
@@ -39,6 +42,8 @@ from launch_ros.actions import Node
 ROBOTS = ('boat', 'submarine')
 OUT_DIR = os.path.expanduser('~/.ros/easynav_playground_marine')   # what this launch generates
 SYNTHETIC_RADIUS = 500.0                                            # m, half-side of the sea
+WORLD_NAME = 'marine_world'                                         # worlds/marine.world.in
+MAX_WAVE_HEIGHT = 2.0                                               # m: the floats are 0.35 m high
 
 BOAT_HELP = (
     'robot:=boat: the WAM-V starts at (%.1f, %.1f) on the water (z = %.2f). Command it with a Twist on '
@@ -56,13 +61,16 @@ SUBMARINE_HELP = (
     'A command older than a second stops the propeller and centres the fins.')
 
 
-def synthetic_sea(tools):
-    """The module tools/synthetic_sea.py (it is installed as a program, not as a Python package)."""
-    spec = importlib.util.spec_from_file_location(
-        'synthetic_sea', os.path.join(tools, 'synthetic_sea.py'))
+def load_tool(tools, name):
+    """The module tools/<name>.py (they are installed as programs, not as a Python package)."""
+    spec = importlib.util.spec_from_file_location(name, os.path.join(tools, name + '.py'))
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def synthetic_sea(tools):
+    return load_tool(tools, 'synthetic_sea')
 
 
 def underwater_at(sea, x=0.0, y=0.0):
@@ -148,6 +156,23 @@ def generate_launch_description():
         DeclareLaunchArgument('spawn_y', default_value='0', description='y where it starts'),
         DeclareLaunchArgument('gui', default_value='true', description='Gazebo GUI'),
         DeclareLaunchArgument(
+            'waves', default_value='false',
+            description='true: the vehicle moves as in a sea, and the water is drawn with the waves'),
+        DeclareLaunchArgument(
+            'wave_visual', default_value='true',
+            description='waves:=true: draw the waves on the water (a shader). false: the water that '
+                        'is drawn stays flat and only the vehicle moves'),
+        DeclareLaunchArgument(
+            'wave_height', default_value='0.4',
+            description='waves:=true: height of the main wave, crest to trough, m (0 to %g)'
+                        % MAX_WAVE_HEIGHT),
+        DeclareLaunchArgument('wave_period', default_value='4.0',
+                              description='waves:=true: period of the main wave, s (2 to 15)'),
+        DeclareLaunchArgument(
+            'wave_direction', default_value='180',
+            description='waves:=true: where the main wave goes, degrees (0: east, 90: north; '
+                        '180: to the beach)'),
+        DeclareLaunchArgument(
             'gpu', default_value='auto',
             description='auto/nvidia/none: with an NVIDIA GPU on a hybrid laptop Gazebo falls back '
                         'to software rendering (EGL dri2 error) and runs ~30x slower; nvidia (or '
@@ -169,6 +194,18 @@ def setup(context):
     robot = arg('robot')
     if robot not in ROBOTS:
         raise RuntimeError("robot must be one of %s, not '%s'" % (', '.join(ROBOTS), robot))
+    if arg('waves') not in ('true', 'false'):
+        raise RuntimeError("waves must be true or false, not '%s'" % arg('waves'))
+    waves_on = arg('waves') == 'true'
+    if arg('wave_visual') not in ('true', 'false'):
+        raise RuntimeError("wave_visual must be true or false, not '%s'" % arg('wave_visual'))
+    if waves_on:
+        height, period = float(arg('wave_height')), float(arg('wave_period'))
+        float(arg('wave_direction'))
+        if not 0.0 <= height <= MAX_WAVE_HEIGHT:
+            raise RuntimeError('wave_height must be between 0 and %g m, not %g' % (MAX_WAVE_HEIGHT, height))
+        if not 2.0 <= period <= 15.0:
+            raise RuntimeError('wave_period must be between 2 and 15 s, not %g' % period)
 
     gpu = arg('gpu')
     egl_nvidia = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json'
@@ -186,11 +223,19 @@ def setup(context):
         raise RuntimeError('radius must be at least 100 m: the beach and the islet are within 400 m')
     sea = synthetic_sea(tools)
     out = os.path.join(OUT_DIR, 'synthetic_r%g' % radius)
-    sea.make(out, radius, template=os.path.join(here, 'worlds', 'marine.world.in'))
+    shader = None
+    if waves_on and arg('wave_visual') == 'true':
+        # the water is drawn with the very field that moves the vehicle (the same module)
+        field = load_tool(tools, 'wave_node').Waves(height, period, float(arg('wave_direction')))
+        shader = {'dir': os.path.join(models, 'marine_waves', 'materials'), 'params': field.shader_params()}
+    sea.make(out, radius, template=os.path.join(here, 'worlds', 'marine.world.in'), shader=shader)
     world_file = os.path.join(out, 'world.sdf')
 
     # the world with the vehicle put in it, the bridge that carries the commands, the pose and the
     # clock, and the autopilot of the robot
+    wave_entries = [('/world/%s/wrench' % WORLD_NAME, '/waves/wrench',
+                     'ros_gz_interfaces/msg/EntityWrench', 'gz.msgs.EntityWrench',
+                     'ROS_TO_GZ')] if waves_on else []
     x, y = float(arg('spawn_x')), float(arg('spawn_y'))
     if not underwater_at(sea, x, y):
         raise RuntimeError('there is no water at (%.0f, %.0f): the %s needs more than 1 m of it '
@@ -208,7 +253,7 @@ def setup(context):
                 (joints + 'left_engine_propeller_joint/cmd_thrust', '/boat/left_thrust',
                  'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ'),
                 (joints + 'right_engine_propeller_joint/cmd_thrust', '/boat/right_thrust',
-                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')])
+                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries)
         autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'boat_cmd.py'), '--sim-time'],
                                    name='boat_cmd', output='screen')
     else:
@@ -229,7 +274,7 @@ def setup(context):
                 (joints + 'vertical_fins_joint/0/cmd_pos', '/tethys/rudder',
                  'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ'),
                 (joints + 'horizontal_fins_joint/0/cmd_pos', '/tethys/elevator',
-                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')])
+                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries)
         autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'auv_cmd.py'), '--sim-time'],
                                    name='auv_cmd', output='screen')
     world = vehicle_world(world_file, os.path.join(OUT_DIR, 'world_%s.sdf' % robot),
@@ -241,5 +286,11 @@ def setup(context):
     gazebo = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(os.path.join(here, 'launch', 'world.launch.yaml')),
         launch_arguments={'world': world, 'gui': arg('gui')}.items())
-    return [LogInfo(msg='marine simulation: %s, synthetic sea (%s)' % (robot, out)),
-            LogInfo(msg=help_text), gazebo, bridge, odom_to_tf, autopilot]
+    actions = [LogInfo(msg='marine simulation: %s, synthetic sea (%s)' % (robot, out)),
+               LogInfo(msg=help_text), gazebo, bridge, odom_to_tf, autopilot]
+    if waves_on:
+        actions.append(ExecuteProcess(
+            cmd=[os.path.join(tools, 'wave_node.py'), '--vehicle', robot, '--height', arg('wave_height'),
+                 '--period', arg('wave_period'), '--direction', arg('wave_direction'), '--sim-time'],
+            name='waves', output='screen'))
+    return actions

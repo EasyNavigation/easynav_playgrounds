@@ -58,6 +58,15 @@ FLOOR_DEPTHS = np.array([0.0, 3.0, 15.0, 50.0, 150.0])
 FLOOR_COLOURS = np.array([[206, 190, 140], [120, 165, 150], [38, 110, 135], [16, 52, 98],
                           [8, 24, 56]], dtype=np.float64)
 
+# the mesh of the water when it has waves (it is drawn by a vertex shader, so its vertices are what the
+# wave is made of): spacing in m up to the given distance from the origin; beyond the last, WATER_FAR
+WATER_STEPS = ((30.0, 1.5), (150.0, 3.0), (450.0, 6.0), (750.0, 12.0))
+WATER_FAR = 24.0
+# how the water looks (fragment shader): colours seen through and the opacity
+WATER_ALPHA = 0.7
+WATER_SHALLOW = '0.05 0.30 0.50 1.0'
+WATER_DEEP = '0.02 0.12 0.25 1.0'
+
 WATER_DENSITY = 1000.0    # kg/m3: what the gz-sim marine demos (and their AUV) are balanced for
 AIR_DENSITY = 1.2
 
@@ -156,17 +165,95 @@ def write_terrain(directory, radius, terrain_resolution, texture_resolution=1.0)
     return half
 
 
-def water_sdf(half):
+def water_coordinates(extent):
+    """Increasing coordinates, m, from -extent to extent: close together near 0 and spread out far away
+    (WATER_STEPS), the last one exactly at the extent."""
+    positive, current = [0.0], 0.0
+    while current < extent - 1e-9:
+        step = next((s for limit, s in WATER_STEPS if current < limit), WATER_FAR)
+        current = min(current + step, extent)
+        positive.append(current)
+    positive = np.array(positive)
+    return np.concatenate([-positive[:0:-1], positive])
+
+
+def write_water_mesh(directory, extent):
+    """Write water.obj: a flat square of side 2 x extent at z = 0, facing up, with texture coordinates
+    over the whole square (the bump map of the shader). Returns the number of vertices."""
+    coords = water_coordinates(extent)
+    n = len(coords)
+    gx, gy = np.meshgrid(coords, coords)
+    j, i = np.mgrid[0:n - 1, 0:n - 1]
+    v00 = (j * n + i).ravel() + 1
+    v10, v01, v11 = v00 + 1, v00 + n, v00 + n + 1
+    faces = np.empty((v00.size * 2, 3), dtype=np.int64)
+    faces[0::2] = np.stack([v00, v10, v11], axis=1)
+    faces[1::2] = np.stack([v00, v11, v01], axis=1)
+    lines = ['v %.6g %.6g 0' % (x, y) for x, y in zip(gx.ravel(), gy.ravel())]
+    lines += ['vt %.6g %.6g' % ((x + extent) / (2 * extent), (y + extent) / (2 * extent))
+              for x, y in zip(gx.ravel(), gy.ravel())]
+    lines.append('vn 0 0 1')
+    lines += ['f %d/%d/1 %d/%d/1 %d/%d/1' % (a, a, b, b, c, c) for a, b, c in faces]
+    with open(os.path.join(directory, 'water.obj'), 'w') as f:
+        f.write('\n'.join(lines) + '\n')
+    return n * n
+
+
+def shader_visual(shader):
+    """The SDF of the visual that draws the water with waves: the mesh, and the ShaderParam plugin that
+    gives the shaders their parameters (and the time of the simulation, as `t`). `shader`: the folder
+    of the materials (marine_waves/materials), the parameters of the waves (name, type, value) and the
+    URI of the mesh."""
+    programs = os.path.join(shader['dir'], 'programs')
+    textures = os.path.join(shader['dir'], 'textures')
+
+    def param(stage, name, kind, value, arg=None):
+        text = '<param><shader>%s</shader><name>%s</name>' % (stage, name)
+        if kind:
+            text += '<type>%s</type>' % kind
+        if value is not None:
+            text += '<value>%s</value>' % value
+        if arg is not None:
+            text += '<arg>%s</arg>' % arg          # the texture coordinate set of a cube map
+        return text + '</param>'
+
+    lines = [param('vertex', *p) for p in shader['params']]
+    lines += [param('vertex', 'rescale', 'float', '0.5'),
+              param('vertex', 'bumpScale', 'float_array', '37 37'),
+              param('vertex', 'bumpSpeed', 'float_array', '0.01 0.01'),
+              param('vertex', 'camera_position_object_space', None, None),
+              param('vertex', 'worldviewproj_matrix', None, None),
+              param('vertex', 't', None, 'TIME'),
+              param('fragment', 'hdrMultiplier', 'float', '0.4'),
+              param('fragment', 'fresnelPower', 'float', '5.0'),
+              param('fragment', 'alpha', 'float', '%g' % shader.get('alpha', WATER_ALPHA)),
+              param('fragment', 'shallowColor', 'float_array', WATER_SHALLOW),
+              param('fragment', 'deepColor', 'float_array', WATER_DEEP),
+              param('fragment', 'cubeMap', 'texture_cube', os.path.join(textures, 'skybox_lowres.dds'), 1),
+              param('fragment', 'bumpMap', 'texture', os.path.join(textures, 'wave_normals.dds'))]
+    body = '\n                    '.join(lines)
+    return f"""
+                <visual name="waves">
+                    <cast_shadows>false</cast_shadows>
+                    <geometry><mesh><uri>{shader['mesh']}</uri></mesh></geometry>
+                    <plugin filename="gz-sim-shader-param-system" name="gz::sim::systems::ShaderParam">
+                        <shader language="glsl">
+                            <vertex>{os.path.join(programs, 'GerstnerWaves_vs_330.glsl')}</vertex>
+                            <fragment>{os.path.join(programs, 'GerstnerWaves_fs_330.glsl')}</fragment>
+                        </shader>
+                    {body}
+                    </plugin>
+                </visual>"""
+
+
+def water_sdf(half, shader=None):
     """The SDF that makes the sea water: a translucent surface at z = 0 (seen from above and from
     below) and the buoyancy system (sea water below the surface, air above). The launch file adds the
-    vehicle to its <enable> list."""
+    vehicle to its <enable> list. With `shader` (see shader_visual) the surface seen from above is the
+    wave field drawn by a vertex shader; the flat one is kept to be seen from below. The buoyancy stays
+    that of a flat sea: the waves are applied to the vehicles as forces (tools/wave_node.py)."""
     size = 3.0 * half
-    return f"""
-        <!-- the sea: a surface, and buoyancy (generated) -->
-        <model name="marine_water">
-            <static>true</static>
-            <pose>0 0 0 0 0 0</pose>
-            <link name="surface">
+    above = shader_visual(shader) if shader else f"""
                 <visual name="water">
                     <cast_shadows>false</cast_shadows>
                     <geometry><plane><normal>0 0 1</normal>
@@ -176,7 +263,13 @@ def water_sdf(half):
                         <diffuse>0.05 0.25 0.45 0.4</diffuse>
                         <specular>0.4 0.4 0.4 0.4</specular>
                     </material>
-                </visual>
+                </visual>"""
+    return f"""
+        <!-- the sea: a surface, and buoyancy (generated) -->
+        <model name="marine_water">
+            <static>true</static>
+            <pose>0 0 0 0 0 0</pose>
+            <link name="surface">{above}
                 <!-- the same seen from below (a plane is drawn on one side only) -->
                 <visual name="water_from_below">
                     <cast_shadows>false</cast_shadows>
@@ -202,9 +295,10 @@ def water_sdf(half):
 """
 
 
-def make(out, radius=500.0, terrain_resolution=4.0, template=None):
+def make(out, radius=500.0, terrain_resolution=4.0, template=None, shader=None):
     """Write the world of the synthetic sea in the directory `out` (see the module docstring) and
-    return the half-side of the square, m."""
+    return the half-side of the square, m. `shader`: the water with waves (see shader_visual, without
+    the mesh, which is written here); without it the water is flat."""
     if template is None:
         from ament_index_python.packages import get_package_share_directory
         template = os.path.join(get_package_share_directory('easynav_playground_marine_worlds'),
@@ -214,9 +308,12 @@ def make(out, radius=500.0, terrain_resolution=4.0, template=None):
     if '@TERRAIN_DIR@' not in text or '@WATER@' not in text:
         raise ValueError('%s has no @TERRAIN_DIR@ / @WATER@ placeholder' % template)
     half = write_terrain(out, radius, terrain_resolution)
+    if shader:
+        write_water_mesh(out, 1.5 * half)
+        shader = dict(shader, mesh='file://' + os.path.join(os.path.abspath(out), 'water.obj'))
     text = (text.replace('@LATITUDE@', repr(LATITUDE)).replace('@LONGITUDE@', repr(LONGITUDE))
             .replace('@ELEVATION@', '0').replace('@TERRAIN_DIR@', os.path.abspath(out))
-            .replace('@WATER@', water_sdf(half)))
+            .replace('@WATER@', water_sdf(half, shader)))
     with open(os.path.join(out, 'world.sdf'), 'w') as f:
         f.write(text)
     return half

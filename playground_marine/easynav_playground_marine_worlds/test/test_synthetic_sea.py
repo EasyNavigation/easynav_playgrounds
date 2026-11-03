@@ -98,3 +98,29 @@ def test_the_sea_is_made_without_navmap_or_bigmap():
 def test_a_radius_that_leaves_out_the_beach_is_refused():
     with pytest.raises(SystemExit):
         tool().main(['--out', '/nonexistent/never_written', '--radius', '50'])
+
+
+def test_the_water_mesh_is_fine_near_the_origin_and_covers_the_square(tmp_path):
+    t = tool()
+    c = t.water_coordinates(750.0)
+    assert c[0] == -750.0 and c[-1] == 750.0 and np.allclose(c, -c[::-1])
+    steps = np.diff(c)
+    assert steps[np.abs(c[:-1]) < 30.0].max() <= 1.5 + 1e-9        # a wave of 12 m has 8 cells at least
+    assert steps.max() <= 12.0 + 1e-9
+    n = t.write_water_mesh(str(tmp_path), 750.0)
+    text = (tmp_path / 'water.obj').read_text().splitlines()
+    verts = [l for l in text if l.startswith('v ')]
+    faces = [l for l in text if l.startswith('f ')]
+    assert len(verts) == n == len(c) ** 2
+    assert len(faces) == 2 * (len(c) - 1) ** 2
+    assert max(int(i.split('/')[0]) for f in faces for i in f.split()[1:]) == n
+
+
+def test_the_water_mesh_faces_up(tmp_path):
+    t = tool()
+    t.write_water_mesh(str(tmp_path), 100.0)
+    text = (tmp_path / 'water.obj').read_text().splitlines()
+    verts = np.array([[float(v) for v in l.split()[1:]] for l in text if l.startswith('v ')])
+    face = [int(i.split('/')[0]) - 1 for i in [l for l in text if l.startswith('f ')][0].split()[1:]]
+    a, b, c = verts[face]
+    assert np.cross(b - a, c - a)[2] > 0.0                         # counter-clockwise seen from above

@@ -43,10 +43,16 @@ def test_every_argument_it_passes_is_declared_by_the_simulation_launch_file():
         assert "'%s'" % a['name'] in source, a['name']
 
 
-@pytest.mark.parametrize('arg', ['robot', 'radius', 'altitude', 'gui'])
+@pytest.mark.parametrize('arg', ['robot', 'radius', 'altitude', 'gui', 'waves', 'wave_visual', 'wave_height',
+                                 'wave_period', 'wave_direction'])
 def test_each_argument_of_the_playground_is_passed_on(arg):
     include = [e['include'] for e in load() if 'include' in e][0]
     assert {'name': arg, 'value': '$(var %s)' % arg} in include['arg']
+
+
+def test_the_waves_are_off_unless_asked_for():
+    args = {e['arg']['name']: e['arg'] for e in load() if 'arg' in e}
+    assert args['waves']['default'] == 'false'
 
 
 def test_it_is_only_the_simulation_no_other_family_package_is_named():

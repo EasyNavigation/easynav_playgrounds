@@ -34,7 +34,10 @@
         <min_thrust_cmd>-200.0</min_thrust_cmd>
       </plugin>
 
-      <!-- drag of the hulls in the water (surge, sway, heave, roll, pitch, yaw) -->
+      <!-- drag of the hulls in the water (surge, sway, heave, roll, pitch, yaw). The linear terms of roll
+           (kP) and pitch (mQ) are what a damping ratio of about 0.25 asks of the stiffness and the inertia
+           measured on the model (33 and 24 kNm/rad, ~200 and ~600 kg m2): with 200 each it was 0.03, and
+           in waves the boat rang at its natural frequency (about 1 Hz) -->
       <plugin
         filename="gz-sim-hydrodynamics-system"
         name="gz::sim::systems::Hydrodynamics">
@@ -52,9 +55,9 @@
         <zWabsW>-250.0</zWabsW>
         <zW>-150.0</zW>
         <kPabsP>-200.0</kPabsP>
-        <kP>-200.0</kP>
+        <kP>-1000.0</kP>
         <mQabsQ>-200.0</mQabsQ>
-        <mQ>-200.0</mQ>
+        <mQ>-1500.0</mQ>
         <nRabsR>-150.0</nRabsR>
         <nR>-100.0</nR>
       </plugin>

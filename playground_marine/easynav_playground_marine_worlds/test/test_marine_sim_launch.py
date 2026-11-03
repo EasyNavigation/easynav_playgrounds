@@ -16,7 +16,9 @@
 without starting any process. Needs the workspace built and sourced (ament index)."""
 
 import importlib.util
+import math
 import os
+import re
 
 import pytest
 
@@ -78,6 +80,104 @@ def test_it_writes_the_synthetic_sea_and_starts_the_vehicle(robot, tmp_path, mon
              if isinstance(a, ExecuteProcess) and not isinstance(a, Node)]
     assert any(('boat_cmd.py' if robot == 'boat' else 'auv_cmd.py') in n for n in names)
     assert any('odom_to_tf.py' in n for n in names)
+
+
+def processes(actions, ctx):
+    return [command(a, ctx) for a in actions
+            if isinstance(a, ExecuteProcess) and not isinstance(a, Node)]
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_there_are_no_waves_unless_asked_for(robot, tmp_path, monkeypatch):
+    m, ctx = context(robot=robot, gpu='none', radius='200')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    actions = m.setup(ctx)
+    assert not any('wave_node.py' in c for c in processes(actions, ctx))
+    assert 'EntityWrench' not in (tmp_path / ('%s_bridge.yaml' % ('boat' if robot == 'boat' else 'tethys'))).read_text()
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_waves_start_the_wave_node_and_bridge_the_wrench_to_the_world(robot, tmp_path, monkeypatch):
+    m, ctx = context(robot=robot, gpu='none', radius='200', waves='true', wave_height='1.2',
+                     wave_period='5', wave_direction='90')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    cmd = [c for c in processes(m.setup(ctx), ctx) if 'wave_node.py' in c]
+    assert len(cmd) == 1
+    assert '--vehicle %s' % robot in cmd[0] and '--height 1.2' in cmd[0]
+    assert '--period 5' in cmd[0] and '--direction 90' in cmd[0] and '--sim-time' in cmd[0]
+    bridge = (tmp_path / ('%s_bridge.yaml' % ('boat' if robot == 'boat' else 'tethys'))).read_text()
+    assert '/world/marine_world/wrench' in bridge and 'ros_gz_interfaces/msg/EntityWrench' in bridge
+    block = [b for b in bridge.split('- ros_topic_name') if 'EntityWrench' in b][0]
+    assert 'direction: ROS_TO_GZ' in block and '/waves/wrench' in block
+    world = (tmp_path / 'synthetic_r200' / 'world.sdf').read_text()
+    assert 'gz-sim-apply-link-wrench-system' in world      # what the wrench needs in the world
+
+
+@pytest.mark.parametrize('given, message', [
+    ({'waves': 'yes'}, 'true or false'),
+    ({'waves': 'true', 'wave_height': '5'}, 'wave_height'),
+    ({'waves': 'true', 'wave_height': '-1'}, 'wave_height'),
+    ({'waves': 'true', 'wave_period': '1'}, 'wave_period'),
+    ({'waves': 'true', 'wave_period': '30'}, 'wave_period'),
+])
+def test_waves_with_values_that_make_no_sense_are_refused(given, message, tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', **given)
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    with pytest.raises(RuntimeError, match=message):
+        m.setup(ctx)
+
+
+def world_of(tmp_path):
+    return (tmp_path / 'synthetic_r200' / 'world.sdf').read_text()
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_with_waves_the_water_is_drawn_by_a_shader_whose_files_exist(robot, tmp_path, monkeypatch):
+    m, ctx = context(robot=robot, gpu='none', radius='200', waves='true', wave_height='0.8',
+                     wave_period='5', wave_direction='130')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    m.setup(ctx)
+    world = world_of(tmp_path)
+    assert 'gz-sim-shader-param-system' in world and '<name>Nwaves</name>' in world
+    assert '<name>t</name><value>TIME</value>' in world
+    assert (tmp_path / 'synthetic_r200' / 'water.obj').is_file()
+    assert 'file://%s/water.obj' % (tmp_path / 'synthetic_r200') in world
+    files = re.findall(r'<(?:vertex|fragment)>([^<]+)</', world)
+    files += re.findall(r'<type>texture(?:_cube)?</type><value>([^<]+)</value>', world)
+    assert len(files) == 4
+    for path in files:
+        assert os.path.isfile(path), path
+    assert '<visual name="water_from_below">' in world          # seen from below, flat
+
+
+def test_the_shader_gets_the_waves_of_the_arguments(tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', radius='200', waves='true', wave_height='0.8',
+                     wave_period='5', wave_direction='90')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    m.setup(ctx)
+    world = world_of(tmp_path)
+    amplitude = re.search(r'<name>amplitude</name><type>float_array</type><value>([^<]+)</value>', world)
+    assert float(amplitude.group(1).split()[0]) == pytest.approx(0.4)          # half the height
+    omega = re.search(r'<name>omega</name><type>float_array</type><value>([^<]+)</value>', world)
+    assert float(omega.group(1).split()[0]) == pytest.approx(2 * math.pi / 5.0)
+    dir0 = re.search(r'<name>dir0</name><type>float_array</type><value>([^<]+)</value>', world)
+    assert [round(float(v), 6) for v in dir0.group(1).split()] == [0.0, 1.0]   # to the north
+
+
+@pytest.mark.parametrize('given', [{}, {'waves': 'true', 'wave_visual': 'false'}])
+def test_the_water_stays_flat_without_waves_or_without_the_visual(given, tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', radius='200', **given)
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    m.setup(ctx)
+    assert 'shader-param' not in world_of(tmp_path)
+    assert not (tmp_path / 'synthetic_r200' / 'water.obj').exists()
+
+
+def test_wave_visual_is_true_or_false(tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', wave_visual='sometimes')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    with pytest.raises(RuntimeError, match='true or false'):
+        m.setup(ctx)
 
 
 def robot_model(robot):
