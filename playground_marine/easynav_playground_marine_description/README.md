@@ -18,7 +18,16 @@ the models) are filled in by `marine_sim.launch.py` of the worlds package, which
 name to the `<enable>` list of the world's Buoyancy plugin. The meshes come from Gazebo Fuel the first
 time (internet).
 
-## License
+## Licenses
 
-Apache-2.0 for what is here. The meshes and the original models belong to their authors on Gazebo Fuel:
-check their licenses there before redistributing.
+* What is here is Apache-2.0 ([LICENSE](./LICENSE)), except `models/marine_wamv/model.sdf`.
+* `models/marine_wamv/model.sdf` is a modified copy of the **WAM-V** of Open Robotics in Gazebo Fuel
+  (`OpenRobotics/wam-v`, by Carlos Aguero and Cole Biesemeyer), under **CC-BY-4.0**
+  ([LICENSE-CC-BY-4.0](./LICENSE-CC-BY-4.0)). The changes (boxes for the floats, fixed engine joints) are
+  described at the top of the file.
+* The **MBARI Tethys LRAUV** (`accurrent/MBARI Tethys LRAUV`, by Mabel Zhang) is not copied: `tethys.sdf.in`
+  includes it from Gazebo Fuel, where it is also under CC-BY-4.0. The meshes of both models are downloaded
+  from Fuel the first time; they are not in this repository.
+* The plugin set of `tethys.sdf.in` follows the `auv_controls.sdf` demo of gz-sim (Apache-2.0).
+
+The licenses are those that Gazebo Fuel shows for each model (checked 2026-11-03).

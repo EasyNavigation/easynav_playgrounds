@@ -67,6 +67,7 @@ older than a second stops the engines.
 
 ## Licenses
 
-The launchers, the tools and the synthetic sea are Apache-2.0. The WAM-V model comes from OpenRobotics'
-`wam-v` of Gazebo Fuel (VRX) and the Tethys from Gazebo Fuel (`accurrent/MBARI Tethys LRAUV`): check
-their licenses on Fuel before redistributing them.
+The launchers, the tools and the synthetic sea are Apache-2.0. The vehicles are by third parties and come
+from Gazebo Fuel, both under CC-BY-4.0: the WAM-V by Carlos Aguero and Cole Biesemeyer (Open Robotics; a
+modified copy of its SDF is in the description package) and the MBARI Tethys LRAUV by Mabel Zhang
+(Accurrent; downloaded, not copied). See the README of `easynav_playground_marine_description`.
