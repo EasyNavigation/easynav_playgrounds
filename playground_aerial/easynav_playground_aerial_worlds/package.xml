@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_aerial_worlds</name>
+  <version>0.5.1</version>
+  <description>Gazebo (Harmonic or newer) simulation of a flying saucer for the EasyNav playgrounds: a town in Nathan Benderson Park, and the launchers that spawn the UFO with its flight controller and the ROS-Gazebo bridge.</description>
+  <maintainer email="fmrico@gmail.com">Francisco Martín Rico</maintainer>
+  <!-- Launchers, bridge configuration, flight controller and tools; the town world
+       (worlds/nathan_benderson_town.sdf), from Juan S. Cely's disaster_world (Apache-2.0) -->
+  <license file="LICENSE">Apache-2.0</license>
+  <!-- The building models (models/*, but nathan_benderson_park and lake_water), from Open
+       Robotics' models in Gazebo Fuel -->
+  <license file="LICENSE-CC0">CC0-1.0</license>
+  <!-- The park (models/nathan_benderson_park/), Open Robotics' model in Gazebo Fuel, with fewer
+       and smaller textures and without trees -->
+  <license file="LICENSE-CC-BY-4.0">CC-BY-4.0</license>
+  <author email="fmrico@gmail.com">Francisco Martín Rico</author>
+  <author>Juan Sebastián Cely Gutierrez (the disaster world)</author>
+  <author>Open Robotics (the park and the buildings)</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>easynav_playground_aerial_description</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>gz_sim_vendor</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>xacro</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

@@ -1,0 +1,149 @@
+# Prius on the Sonoma Raceway: GPS localization (FusionLocalizer), A* over the track NavMap and
+# Regulated Pure Pursuit. The Ackermann controller turns (v, w) into a steering angle.
+
+controller_node:
+  ros__parameters:
+    use_sim_time: true
+    robot_limits:
+      max_linear_vel: 8.0
+      min_linear_vel: 0.0
+      # Steering 0.6 rad, wheelbase 2.8 m: w = v tan(0.6) / 2.8 (0.24 v)
+      max_angular_vel: 1.0
+      max_linear_acc: 2.0
+      max_linear_decel: 4.0
+      max_angular_acc: 2.0
+      max_angular_decel: 4.0
+    controller_types: [rpp]
+    rpp:
+      rt_freq: 30.0
+      plugin: easynav_regulated_pp_controller/RegulatedPurePursuitController
+      safety_margin: 0.1
+      use_dynamic_window: false
+      allow_reversing: false
+      lookahead_dist: 6.0
+      min_lookahead_dist: 4.0
+      max_lookahead_dist: 15.0
+      lookahead_time: 1.5
+      use_velocity_scaled_lookahead_dist: true
+      # A car does not turn in place
+      use_rotate_to_heading: false
+      use_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 10.0
+      regulated_linear_scaling_min_speed: 1.0
+      use_fixed_curvature_lookahead: false
+      curvature_lookahead_dist: 6.0
+      interpolate_curvature_after_goal: false
+      use_obstacle_regulated_linear_velocity_scaling: false
+      min_approach_linear_velocity: 0.5
+      approach_velocity_scaling_dist: 5.0
+      xy_goal_tolerance: 1.0
+      yaw_goal_tolerance: 3.15
+
+localizer_node:
+  ros__parameters:
+    use_sim_time: true
+    localizer_types: [ukf]
+    ukf:
+      rt_freq: 50.0
+      freq: 5.0
+      plugin: easynav_fusion_localizer/FusionLocalizer
+      # The world's spherical_coordinates (worlds/sonoma_raceway.sdf): map is the world frame
+      latitude_origin: 38.162767
+      longitude_origin: -122.457945
+      altitude_origin: 10.3
+      # Gazebo's map is east-north-up at that origin, not the UTM grid (0.34 deg off here)
+      projection: enu
+      # Only the global filter: odom -> base_footprint is the Ackermann controller's odometry
+      global_filter:
+        two_d_mode: true
+        publish_tf: true
+        transform_timeout: 0.1
+        map_frame: map
+        odom_frame: odom
+        base_link_frame: base_footprint
+        world_frame: map
+        gps0: /gps/fix
+        gps0_config: [true,  true,  false,  false, false, false,
+                      false, false, false,  false, false, false,
+                      false, false, false]
+        gps0_differential: false
+        odom0: /prius_base_control/odometry
+        odom0_config: [false, false, false,  false, false, false,
+                       true,  true,  false,  false, false, true,
+                       false, false, false]
+        odom0_differential: false
+        # Gazebo's IMU orientation is absolute (ENU), so it gives the heading
+        imu0: /imu/data
+        imu0_config: [false, false, false,  false, false, true,
+                      false, false, false,  false, false, true,
+                      false, false, false]
+        imu0_differential: false
+        imu0_remove_gravitational_acceleration: true
+
+maps_manager_node:
+  ros__parameters:
+    use_sim_time: true
+    map_types: [navmap]
+    navmap:
+      freq: 10.0
+      plugin: easynav_navmap_maps_manager/NavMapMapsManager
+      package: easynav_playground_ackermann_worlds
+      navmap_path_file: maps/sonoma_track.navmap
+      filters: [obstacles, inflation]
+      # The map's "occupancy" layer has the raceway's walls; the sensors add what they see
+      obstacles:
+        plugin: easynav_navmap_maps_manager/NavMapMapsManager/ObstaclesFilter
+        memory:                     # obstacles out of sight are remembered; rays clear them
+          enabled: true
+          p_hit: 0.55               # 3 hits in a row to mark a cell
+          decay_time: 10.0
+        max_range: 25.0             # stopping distance at 8 m/s is 8 m (4 m/s2)
+        min_height: 0.4             # above the NavMap surface: the lidar sees the asphalt
+        min_height_per_meter: 0.04  # +0.04 m per meter from the car (slopes, pitch)
+        max_height: 2.0             # robot frame: the bridge over the track is not an obstacle
+      # The track's edges are the map's borders: the cost keeps paths in the middle
+      inflation:
+        plugin: easynav_navmap_maps_manager/NavMapMapsManager/InflationFilter
+        inflation_radius: 4.0
+        cost_scaling_factor: 1.0
+
+planner_node:
+  ros__parameters:
+    use_sim_time: true
+    planner_types: [astar]
+    astar:
+      freq: 1.0
+      plugin: easynav_navmap_planner/AStarPlanner
+      cost_weight: 3.0
+
+sensors_node:
+  ros__parameters:
+    use_sim_time: true
+    forget_time: 0.5
+    sensors: [laser, imu, gps]
+    perception_default_frame: odom
+    laser:
+      topic: top_laser/points
+      type: sensor_msgs/msg/PointCloud2
+    imu:
+      topic: imu/data
+      type: sensor_msgs/msg/Imu
+    gps:
+      topic: gps/fix
+      type: sensor_msgs/msg/NavSatFix
+      group: gnss
+
+system_node:
+  ros__parameters:
+    robot_geometry:
+      # The car's body (4.62 x 2.01 m) around base_footprint, under the rear axle
+      footprint: [3.69, 1.0, -0.93, 1.0, -0.93, -1.0, 3.69, -1.0]
+      radius: 3.83
+      inscribed_radius: 1.0
+      height: 1.5
+    use_sim_time: true
+    use_real_time: true
+    rt_freq: 50.0
+    position_tolerance: 1.0
+    height_tolerance: 2.0
+    angle_tolerance: 3.15

@@ -1,0 +1,69 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Spawns the UFO in a running Gazebo, with its flight controller and the ROS-Gazebo bridge
+# (clock, tf, odometry, imu, lidars, camera and GPS).
+
+launch:
+- arg: {name: x, default: '-65.0'}
+- arg: {name: y, default: '880.0'}
+- arg: {name: z, default: '6.0'}
+- arg: {name: yaw, default: '1.5708'}
+- arg: {name: use_sim_time, default: 'true'}
+
+- node:
+    pkg: robot_state_publisher
+    exec: robot_state_publisher
+    output: screen
+    param:
+    - name: robot_description
+      type: str
+      value: $(command 'xacro $(find-pkg-share easynav_playground_aerial_description)/urdf/ufo.urdf.xacro')
+    - {name: publish_frequency, value: 50.0}
+    - {name: use_sim_time, value: $(var use_sim_time)}
+
+# The model name matters: the velocity and odometry topics are /model/ufo/...
+- node:
+    pkg: ros_gz_sim
+    exec: create
+    output: screen
+    args: -name ufo -topic robot_description -x $(var x) -y $(var y) -z $(var z) -Y $(var yaw)
+
+- node:
+    pkg: ros_gz_bridge
+    exec: parameter_bridge
+    name: bridge_ros_gz
+    output: screen
+    param:
+    - {name: config_file, value: $(find-pkg-share easynav_playground_aerial_worlds)/config/bridge/ufo_bridge.yaml}
+    - {name: use_sim_time, value: $(var use_sim_time)}
+
+# cmd_vel (Twist, body frame: x, y, z, yaw) -> the velocity Gazebo applies, with inertia and
+# the acceleration limits of each axis
+- node:
+    pkg: easynav_playground_aerial_worlds
+    exec: ufo_flight_controller.py
+    output: screen
+    param:
+    - {name: use_sim_time, value: $(var use_sim_time)}
+    - {name: max_vel_xy, value: 3.0}
+    - {name: max_vel_z, value: 1.5}
+    - {name: max_vel_yaw, value: 1.5}
+    - {name: max_acc_xy, value: 1.5}
+    - {name: max_acc_z, value: 1.0}
+    - {name: max_acc_yaw, value: 2.0}
+    - {name: max_decel_xy, value: 2.5}
+    - {name: max_decel_z, value: 1.5}
+    - {name: max_decel_yaw, value: 3.0}
+    - {name: time_constant, value: 0.3}

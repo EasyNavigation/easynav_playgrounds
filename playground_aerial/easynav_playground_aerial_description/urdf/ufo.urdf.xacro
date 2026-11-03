@@ -1,0 +1,195 @@
+<?xml version="1.0"?>
+<!--
+Copyright 2026 Intelligent Robotics Lab
+SPDX-License-Identifier: Apache-2.0
+-->
+<!-- A small flying saucer, 1 m across: no gravity, it moves in x, y, z and yaw with the velocity
+     commanded by its flight controller (easynav_playground_aerial_worlds' ufo_flight_controller).
+     Front camera, a 3D lidar on the dome and another one upside down under the hull, IMU and
+     GPS. base_footprint is the centre of the hull. -->
+<robot name="ufo" xmlns:xacro="http://wiki.ros.org/xacro">
+
+  <xacro:property name="pkg" value="$(find easynav_playground_aerial_description)"/>
+  <xacro:property name="mass" value="5.0"/>
+
+  <material name="hull_silver"><color rgba="0.72 0.74 0.78 1"/></material>
+  <material name="dome_glass"><color rgba="0.35 0.75 0.95 0.6"/></material>
+  <material name="light_green"><color rgba="0.3 1.0 0.4 1"/></material>
+  <material name="sensor_black"><color rgba="0.1 0.1 0.1 1"/></material>
+
+  <link name="base_footprint">
+    <visual>
+      <geometry><mesh filename="file://${pkg}/meshes/ufo_hull.stl"/></geometry>
+      <material name="hull_silver"/>
+    </visual>
+    <visual>
+      <geometry><mesh filename="file://${pkg}/meshes/ufo_dome.stl"/></geometry>
+      <material name="dome_glass"/>
+    </visual>
+    <collision>
+      <geometry><cylinder radius="0.5" length="0.15"/></geometry>
+    </collision>
+    <collision>
+      <origin xyz="0 0 0.12"/>
+      <geometry><cylinder radius="0.18" length="0.1"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="${mass}"/>
+      <!-- A disc 1 m across, 0.15 m high -->
+      <inertia ixx="${mass * (3 * 0.25 + 0.0225) / 12}" ixy="0" ixz="0"
+               iyy="${mass * (3 * 0.25 + 0.0225) / 12}" iyz="0" izz="${mass * 0.25 / 2}"/>
+    </inertial>
+  </link>
+  <gazebo reference="base_footprint">
+    <gravity>false</gravity>
+  </gazebo>
+
+  <!-- Rim lights -->
+  <xacro:macro name="rim_light" params="n">
+    <joint name="light_${n}_joint" type="fixed">
+      <origin xyz="${0.455 * cos(n * pi / 4)} ${0.455 * sin(n * pi / 4)} 0.012"/>
+      <parent link="base_footprint"/>
+      <child link="light_${n}_link"/>
+    </joint>
+    <link name="light_${n}_link">
+      <visual>
+        <geometry><sphere radius="0.02"/></geometry>
+        <material name="light_green"/>
+      </visual>
+    </link>
+    <gazebo reference="light_${n}_link">
+      <visual><material><emissive>0.3 1.0 0.4 1</emissive></material></visual>
+    </gazebo>
+  </xacro:macro>
+  <xacro:rim_light n="0"/>
+  <xacro:rim_light n="1"/>
+  <xacro:rim_light n="2"/>
+  <xacro:rim_light n="3"/>
+  <xacro:rim_light n="4"/>
+  <xacro:rim_light n="5"/>
+  <xacro:rim_light n="6"/>
+  <xacro:rim_light n="7"/>
+
+  <link name="base_link"/>
+  <joint name="base_link_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- Front camera, on the rim, looking slightly down -->
+  <joint name="front_camera_joint" type="fixed">
+    <origin xyz="0.43 0 0.035" rpy="0 0.25 0"/>
+    <parent link="base_link"/>
+    <child link="front_camera_link"/>
+  </joint>
+  <link name="front_camera_link">
+    <visual>
+      <geometry><box size="0.03 0.08 0.03"/></geometry>
+      <material name="sensor_black"/>
+    </visual>
+  </link>
+  <joint name="front_camera_optical_joint" type="fixed">
+    <origin rpy="${-pi / 2} 0 ${-pi / 2}"/>
+    <parent link="front_camera_link"/>
+    <child link="front_camera_optical_frame"/>
+  </joint>
+  <link name="front_camera_optical_frame"/>
+  <gazebo reference="front_camera_link">
+    <sensor name="front_camera" type="camera">
+      <always_on>1</always_on>
+      <update_rate>15</update_rate>
+      <topic>front_camera/image</topic>
+      <gz_frame_id>front_camera_link</gz_frame_id>
+      <camera>
+        <horizontal_fov>1.4</horizontal_fov>
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.05</near><far>200</far></clip>
+        <optical_frame_id>front_camera_optical_frame</optical_frame_id>
+        <camera_info_topic>front_camera/camera_info</camera_info_topic>
+      </camera>
+    </sensor>
+  </gazebo>
+
+  <!-- 3D lidars: 16 beams, 1 deg horizontal, 10 Hz -->
+  <xacro:macro name="lidar" params="name z roll min_v max_v">
+    <joint name="${name}_joint" type="fixed">
+      <origin xyz="0 0 ${z}" rpy="${roll} 0 0"/>
+      <parent link="base_link"/>
+      <child link="${name}_link"/>
+    </joint>
+    <link name="${name}_link">
+      <visual>
+        <geometry><cylinder radius="0.04" length="0.05"/></geometry>
+        <material name="sensor_black"/>
+      </visual>
+    </link>
+    <gazebo reference="${name}_link">
+      <sensor name="${name}" type="gpu_lidar">
+        <always_on>1</always_on>
+        <update_rate>10</update_rate>
+        <topic>${name}</topic>
+        <gz_frame_id>${name}_link</gz_frame_id>
+        <lidar>
+          <scan>
+            <horizontal><samples>360</samples><min_angle>${-pi}</min_angle><max_angle>${pi}</max_angle></horizontal>
+            <vertical><samples>16</samples><min_angle>${radians(min_v)}</min_angle><max_angle>${radians(max_v)}</max_angle></vertical>
+          </scan>
+          <range><min>0.3</min><max>60.0</max><resolution>0.01</resolution></range>
+        </lidar>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+  <!-- Over the dome: from 15 deg below the horizon to 45 deg above it -->
+  <xacro:lidar name="top_laser" z="0.25" roll="0" min_v="-15" max_v="45"/>
+  <!-- Under the hull, upside down: from 15 deg above the horizon to 75 deg below it -->
+  <xacro:lidar name="bottom_laser" z="-0.11" roll="${pi}" min_v="-15" max_v="75"/>
+
+  <!-- IMU (absolute orientation, east-north-up) and GPS -->
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+  </joint>
+  <link name="imu_link"/>
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <always_on>1</always_on>
+      <update_rate>50</update_rate>
+      <topic>imu/data</topic>
+      <gz_frame_id>imu_link</gz_frame_id>
+      <imu>
+        <orientation_reference_frame><localization>ENU</localization></orientation_reference_frame>
+      </imu>
+    </sensor>
+  </gazebo>
+  <joint name="gps_joint" type="fixed">
+    <origin xyz="-0.1 0 0.2"/>
+    <parent link="base_link"/>
+    <child link="gps_link"/>
+  </joint>
+  <link name="gps_link"/>
+  <gazebo reference="gps_link">
+    <sensor name="gps" type="navsat">
+      <always_on>1</always_on>
+      <update_rate>10</update_rate>
+      <topic>gps/fix</topic>
+      <gz_frame_id>gps_link</gz_frame_id>
+    </sensor>
+  </gazebo>
+
+  <!-- Velocity control (body frame) from the flight controller, and odometry
+       (odom -> base_footprint, the true motion: a flying robot has no wheel odometry, this
+       stands for its visual-inertial odometry) -->
+  <gazebo>
+    <plugin filename="gz-sim-velocity-control-system" name="gz::sim::systems::VelocityControl">
+      <topic>/model/ufo/cmd_vel</topic>
+    </plugin>
+    <plugin filename="gz-sim-odometry-publisher-system" name="gz::sim::systems::OdometryPublisher">
+      <odom_frame>odom</odom_frame>
+      <robot_base_frame>base_footprint</robot_base_frame>
+      <dimensions>3</dimensions>
+      <odom_publish_frequency>50</odom_publish_frequency>
+      <odom_topic>/model/ufo/odometry</odom_topic>
+      <tf_topic>/model/ufo/tf</tf_topic>
+    </plugin>
+  </gazebo>
+</robot>

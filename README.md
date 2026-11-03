@@ -20,7 +20,9 @@ Each playground is split in three packages, so that the robot model and the simu
 | [`playground_kobuki`](playground_kobuki/easynav_playground_kobuki) | Kobuki (Turtlebot 2) in a small house (**indoor reference**) | Costmap (RPP, MPPI, MPC, SeReST, MH-AMCL, routes, safety mode), Simple, mapping, multirobot |
 | [`playground_summit`](playground_summit/easynav_playground_summit) | Robotnik Summit XL in an outdoor excavation and an indoor warehouse (**outdoor reference**) | NavMap and Bonxai (RPP, MPPI, MPC), GPS fusion, warehouse logistics |
 | [`playground_tiago`](playground_tiago/easynav_playground_tiago) | PAL Robotics' TIAGo in a small house | Costmap with RPP; NavMap and Bonxai with the laser and the RGBD camera |
-| [`playground_omni`](playground_omni/easynav_playground_omni) | Three- to six-wheel omnidirectional robots in two mazes | Costmap with RPP |
+| [`playground_omni`](playground_omni/easynav_playground_omni) | Three- to six-wheel omnidirectional robots in two mazes | Costmap with RPP, MPPI and MPC as a holonomic robot |
+| [`playground_ackermann`](playground_ackermann/easynav_playground_ackermann) | Toyota Prius (Ackermann steering) on the Sonoma Raceway | NavMap of the track with GPS fusion (RPP, MPC) |
+| [`playground_aerial`](playground_aerial/easynav_playground_aerial) | A flying saucer (UFO) in a town | Bonxai with a 3D planner and MPC |
 
 For example, with the Kobuki:
 
@@ -45,4 +47,4 @@ source install/setup.bash
 
 ## Licensing
 
-Each package declares its licenses in its `package.xml` and explains them in its README. The EasyNav configurations and launchers are by the [Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/) (Universidad Rey Juan Carlos), under Apache-2.0. The robot models and the worlds come from third parties under their own licenses: Yujin Robot's Kobuki (BSD-3-Clause), Robotnik's Summit XL (BSD-3-Clause), PAL Robotics' TIAGo and TIAGo Pro (Apache-2.0), RealSense's camera frames (Apache-2.0), Yohan Prakoso's omnidirectional robots (MIT), AWS RoboMaker's small house and small warehouse (MIT-0) and the URJC excavation (GPL-3.0).
+Each package declares its licenses in its `package.xml` and explains them in its README. The EasyNav configurations and launchers are by the [Intelligent Robotics Lab](https://intelligentroboticslab.gsyc.urjc.es/) (Universidad Rey Juan Carlos), under Apache-2.0. The robot models and the worlds come from third parties under their own licenses: Yujin Robot's Kobuki (BSD-3-Clause), Robotnik's Summit XL (BSD-3-Clause), PAL Robotics' TIAGo and TIAGo Pro (Apache-2.0), RealSense's camera frames (Apache-2.0), Yohan Prakoso's omnidirectional robots (MIT), AWS RoboMaker's small house and small warehouse (MIT-0), the URJC excavation (GPL-3.0), Juan Sebastián Cely Gutierrez's Prius and Sonoma Raceway world (GPL-3.0-only) and town world (Apache-2.0), and Open Robotics' Prius meshes, Sonoma Raceway and town buildings (CC0-1.0) and Nathan Benderson Park (CC-BY-4.0). The UFO is by the Intelligent Robotics Lab (Apache-2.0).

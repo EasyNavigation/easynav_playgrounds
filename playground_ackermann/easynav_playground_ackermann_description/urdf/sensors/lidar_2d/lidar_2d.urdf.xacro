@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<robot name="sensor_lidar_2d" xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="solid_cuboid_inertia" params="m w h d">
+    <inertia  ixx="${(m*(h*h+d*d))/12}" ixy = "0" ixz = "0"
+              iyy="${(m*(w*w+d*d))/12}" iyz = "0"
+              izz="${(m*(w*w+h*h))/12}"
+     />
+  </xacro:macro>
+  <xacro:macro name="sensor_lidar_2d"
+               params="frame_prefix
+                       parent
+                       *origin">
+
+    <joint name="${frame_prefix}base_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent}"/>
+      <child link="${frame_prefix}base_link"/>
+    </joint>
+    <link name="${frame_prefix}base_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.05" length="0.1"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <cylinder radius="0.05" length="0.1"/>
+        </geometry>
+      </collision>
+      <inertial>
+        <mass value="0.25" />
+        <origin xyz="-0.0017 0 0.042875" rpy="0 0 0"/>
+        <xacro:solid_cuboid_inertia m="0.25" w="0.061" h="0.06" d="0.08575" />
+      </inertial>
+    </link>
+    <joint name="${frame_prefix}joint" type="fixed">
+      <origin xyz="0.0 0 0.116" rpy="0 0 0"/>
+      <parent link="${frame_prefix}base_link"/>
+      <child link="${frame_prefix}link"/>
+    </joint>
+    <link name="${frame_prefix}link"/>
+    <gazebo reference="${frame_prefix}link">
+      <sensor name="gpu_lidar_2d" type="gpu_lidar">
+        <update_rate>10</update_rate>
+        <topic>${frame_prefix}</topic>
+        <gz_frame_id>${frame_prefix}link</gz_frame_id>
+        <lidar>
+          <scan>
+            <horizontal>
+              <samples>720</samples>
+              <!--(max_angle-min_angle)/samples * resolution -->
+              <resolution>1</resolution>
+              <min_angle>-1.5707</min_angle>
+              <max_angle>1.5707</max_angle>
+            </horizontal>
+            <!-- Dirty hack for fake lidar detections with ogre 1 rendering in VM -->
+            <!-- <vertical>
+                <samples>3</samples>
+                <min_angle>-0.001</min_angle>
+                <max_angle>0.001</max_angle>
+            </vertical> -->
+          </scan>
+          <range>
+            <min>0.05</min>
+            <max>50.0</max>
+            <resolution>0.01</resolution>
+          </range>
+          <noise>
+              <type>gaussian</type>
+              <mean>0.0</mean>
+              <stddev>0.01</stddev>
+          </noise>
+          <frame_id>${frame_prefix}link</frame_id>
+        </lidar>
+        <always_on>1</always_on>
+        <visualize>true</visualize>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>

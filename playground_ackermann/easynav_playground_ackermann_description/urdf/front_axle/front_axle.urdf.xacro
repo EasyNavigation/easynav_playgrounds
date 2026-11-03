@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<robot name="front_axle" xmlns:xacro="http://wiki.ros.org/xacro">
+
+	<xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/wheel/wheel.urdf.xacro"/>
+
+	<xacro:macro name="front_axle" params="prefix subprefix parent *origin">
+
+		<joint name="${prefix}front_axle_${subprefix}_joint" type="continuous">
+			<parent link="${parent}"/>
+			<child link="${prefix}front_axle_${subprefix}_link"/>
+			<xacro:insert_block name="origin" />
+			<axis xyz="0 0 1" />
+			<limit lower="-0.6" upper="0.6" effort="100000" velocity="100"/>
+		</joint>
+
+		<link name="${prefix}front_axle_${subprefix}_link">
+			<inertial>
+				<mass value="10.0" />
+				<origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+				<inertia  ixx="0.03437499999999999" ixy="0.0"  ixz="0.0"  iyy="1.64581"  iyz="0.0"  izz="1.64581" />
+			</inertial>
+			<visual>
+				<origin xyz="0 0 0" rpy="${PI/2} 0 0" />
+				<geometry>
+					<cylinder radius="0.075" length="0.1"/>
+				</geometry>
+			</visual>
+			<collision>
+				<origin xyz="0 0 0" rpy="${PI/2} 0 0" />
+				<geometry>
+					<cylinder radius="0.075" length="0.1"/>
+				</geometry>
+			</collision>
+		</link>
+
+		<transmission name="${prefix}front_axle_${subprefix}_joint_trans">
+			<plugin>transmission_interface/SimpleTransmission</plugin>
+			<actuator name="${prefix}front_axle_${subprefix}_joint_motor" role="${prefix}front_axle_${subprefix}_joint_motor"/>
+			<joint name="${prefix}front_axle_${subprefix}_joint" role="${prefix}front_axle_${subprefix}_joint">
+				<mechanicalReduction>1</mechanicalReduction>
+				<!-- <motorTorqueConstant>20</motorTorqueConstant> -->
+			</joint>
+     	</transmission>
+
+		<xacro:wheel prefix="$(arg prefix)front_${subprefix}_" parent="${prefix}front_axle_${subprefix}_link" reflect="false">
+		<origin xyz="0 -0.05 0.0" rpy="${PI/2} 0 0"/>
+		</xacro:wheel>
+
+	</xacro:macro>
+</robot>

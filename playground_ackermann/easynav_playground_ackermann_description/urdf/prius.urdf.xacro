@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<robot name="prius" xmlns:xacro="http://wiki.ros.org/xacro">
+
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/prius_base/prius_base.urdf.xacro"/>
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/steering_wheel/steering_wheel.urdf.xacro"/>
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/rear_axle/rear_axle.urdf.xacro"/>
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/front_axle/front_axle.urdf.xacro"/>
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/sensors.urdf.xacro"/>
+
+    <xacro:property name="PI" value="3.1415926535897931"/>
+
+    <xacro:arg name="robot_id" default="prius"/>
+    <xacro:arg name="prefix" default=""/>
+    <xacro:arg name="robot_ns" default=""/>
+
+    <!-- Parts -->
+    <xacro:prius_base prefix="$(arg prefix)"/>
+
+    <xacro:steering_wheel prefix="$(arg prefix)" parent="$(arg prefix)base_link">
+      <origin xyz="0.36 0.36 0.75" rpy="-1.302101 0 ${PI/2}"/>
+    </xacro:steering_wheel>
+
+    <xacro:rear_axle prefix="$(arg prefix)" parent="$(arg prefix)base_link">
+      <origin xyz="-1.68 0 0" rpy="0 0 0"/>
+    </xacro:rear_axle>
+
+    <xacro:front_axle prefix="$(arg prefix)" subprefix="right" parent="$(arg prefix)base_link">
+      <origin xyz="1.12 -0.786 0" rpy="0 0 0"/>
+    </xacro:front_axle>
+
+    <xacro:front_axle prefix="$(arg prefix)" subprefix="left" parent="$(arg prefix)base_link">
+      <origin xyz="1.12 0.786 0" rpy="0 0 ${PI}"/>
+    </xacro:front_axle>
+
+    <!-- Sensors -->
+
+    <!-- Forward camera on the front of the roof, over the windshield, as autonomous cars carry it -->
+    <xacro:sensor_rgbd_camera frame_prefix="$(arg prefix)front_camera" parent="$(arg prefix)base_link">
+      <origin xyz="0.25 0.0 1.32" rpy="0 0.05 0"/>
+    </xacro:sensor_rgbd_camera>
+
+    <xacro:sensor_lidar_3d node_namespace="$(arg robot_ns)" frame_prefix="$(arg prefix)top_laser" parent="$(arg prefix)base_link" simulation="true" gpu="true">
+      <origin xyz="-0.70 0.0 1.4" rpy="0 0 0"/>
+    </xacro:sensor_lidar_3d>
+
+    <xacro:sensor_lidar_2d frame_prefix="$(arg prefix)front_laser" parent="$(arg prefix)base_link">
+      <origin xyz="2.05 0.0 0.2" rpy="0 0 0"/>
+    </xacro:sensor_lidar_2d>
+
+    <xacro:sensor_gps  node_namespace="$(arg robot_ns)" frame_prefix="$(arg prefix)gps_" parent="$(arg prefix)base_link" simulation="true" update_rate="10.0">
+      <origin xyz="-0.10 0 1.3" rpy="0 0 0"/>
+    </xacro:sensor_gps>
+
+    <xacro:sensor_imu ns="$(arg robot_ns)" prefix="$(arg prefix)imu" parent="$(arg prefix)base_link">
+      <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    </xacro:sensor_imu>
+
+    <!-- Gazebo ROS control plugins -->
+    <xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/ros2_control.urdf.xacro"/>
+    <xacro:ros2_control/>
+
+</robot>

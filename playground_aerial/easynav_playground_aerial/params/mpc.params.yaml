@@ -1,0 +1,130 @@
+# The UFO over Nathan Benderson Park's town: GPS + IMU + odometry fusion in 3D, the town's Bonxai
+# map, A* in 3D keeping its distance from the buildings, and the MPC with the aerial model.
+
+controller_node:
+  ros__parameters:
+    use_sim_time: true
+    # As ufo_flight_controller (worlds/launch/ufo.launch.yaml) moves it
+    robot_limits:
+      max_linear_vel: 3.0
+      min_linear_vel: -3.0
+      max_lateral_vel: 3.0
+      max_vertical_vel: 1.5
+      max_angular_vel: 1.5
+      max_linear_acc: 1.5
+      max_linear_decel: 2.5
+      max_lateral_acc: 1.5
+      max_lateral_decel: 2.5
+      max_vertical_acc: 1.0
+      max_vertical_decel: 1.5
+      max_angular_acc: 2.0
+      max_angular_decel: 3.0
+    controller_types: [mpc]
+    mpc:
+      rt_freq: 30.0
+      plugin: easynav_mpc_controller/MPCController
+      motion_model: aerial
+      horizon_steps: 30
+      dt: 0.1
+      time_constant: 0.3          # the flight controller's response
+      safety_margin: 0.5
+      obstacle_range: 4.0
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 0.3
+
+localizer_node:
+  ros__parameters:
+    use_sim_time: true
+    localizer_types: [ukf]
+    ukf:
+      rt_freq: 50.0
+      freq: 5.0
+      plugin: easynav_fusion_localizer/FusionLocalizer
+      navmap_terrain: false       # it flies: no surface to stick to
+      # The world's spherical_coordinates (nathan_benderson_town.sdf), east-north-up
+      latitude_origin: 27.3742
+      longitude_origin: -82.4520
+      altitude_origin: 2.0
+      projection: enu
+      # Only the global filter: odom -> base_footprint comes from the odometry
+      global_filter:
+        two_d_mode: false
+        publish_tf: true
+        transform_timeout: 0.1
+        map_frame: map
+        odom_frame: odom
+        base_link_frame: base_footprint
+        world_frame: map
+        gps0: /gps/fix
+        gps0_config: [true,  true,  true,   false, false, false,
+                      false, false, false,  false, false, false,
+                      false, false, false]
+        gps0_differential: false
+        odom0: /odom
+        odom0_config: [false, false, false,  false, false, false,
+                       true,  true,  true,   false, false, true,
+                       false, false, false]
+        odom0_differential: false
+        imu0: /imu/data
+        imu0_config: [false, false, false,  true,  true,  true,
+                      false, false, false,  false, false, true,
+                      false, false, false]
+        imu0_differential: false
+        imu0_remove_gravitational_acceleration: true
+
+maps_manager_node:
+  ros__parameters:
+    use_sim_time: true
+    map_types: [bonxai]
+    bonxai:
+      freq: 1.0
+      plugin: easynav_bonxai_maps_manager/BonxaiMapsManager
+      package: easynav_playground_aerial_worlds
+      bonxai_path_file: maps/nathan_benderson_town.pcd
+      resolution: 0.5
+
+planner_node:
+  ros__parameters:
+    use_sim_time: true
+    planner_types: [bonxai]
+    bonxai:
+      freq: 1.0
+      plugin: easynav_bonxai_planner/BonxaiPlanner
+      resolution: 1.0
+      min_clearance: 2.0          # the UFO is 1 m across
+      fill_below: highest         # the map is the buildings' surfaces: they are solid blocks
+      preferred_clearance: 5.0
+      max_altitude: 70.0
+
+sensors_node:
+  ros__parameters:
+    use_sim_time: true
+    forget_time: 0.5
+    sensors: [top_laser, bottom_laser, imu, gps]
+    perception_default_frame: odom
+    top_laser:
+      topic: top_laser/points
+      type: sensor_msgs/msg/PointCloud2
+    bottom_laser:
+      topic: bottom_laser/points
+      type: sensor_msgs/msg/PointCloud2
+    imu:
+      topic: imu/data
+      type: sensor_msgs/msg/Imu
+    gps:
+      topic: gps/fix
+      type: sensor_msgs/msg/NavSatFix
+      group: gnss
+
+system_node:
+  ros__parameters:
+    robot_geometry:
+      radius: 0.5
+      inscribed_radius: 0.5
+      height: 0.3
+    use_sim_time: true
+    use_real_time: true
+    rt_freq: 50.0
+    position_tolerance: 0.5
+    height_tolerance: 0.5
+    angle_tolerance: 0.3

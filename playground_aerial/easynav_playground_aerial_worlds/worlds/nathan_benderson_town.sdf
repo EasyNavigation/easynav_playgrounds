@@ -1,0 +1,714 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <world name="nathan_benderson_town">
+    <!-- GUI: default gz-sim 8 plugins, only the initial camera pose is changed -->
+    <gui fullscreen="0">
+      <!-- 3D scene -->
+      <plugin filename="MinimalScene" name="3D View">
+        <gz-gui>
+          <title>3D View</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+        <engine>ogre2</engine>
+        <scene>scene</scene>
+        <ambient_light>0.4 0.4 0.4</ambient_light>
+        <background_color>0.8 0.8 0.8</background_color>
+        <!-- <camera_pose>-80 900 75 0 0.75 0</camera_pose> -->
+        <camera_pose>75 900 400 0 1.5708 0</camera_pose>
+      </plugin>
+
+      <!-- Plugins that add functionality to the scene -->
+      <plugin filename="EntityContextMenuPlugin" name="Entity context menu">
+        <gz-gui>
+          <property key="state" type="string">floating</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="GzSceneManager" name="Scene Manager">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="InteractiveViewControl" name="Interactive view control">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="CameraTracking" name="Camera Tracking">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="MarkerManager" name="Marker manager">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="SelectEntities" name="Select Entities">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="Spawn" name="Spawn Entities">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+      <plugin filename="VisualizationCapabilities" name="Visualization Capabilities">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="width" type="double">5</property>
+          <property key="height" type="double">5</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- World control -->
+      <plugin filename="WorldControl" name="World control">
+        <gz-gui>
+          <title>World control</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">72</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="left" target="left"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <play_pause>true</play_pause>
+        <step>true</step>
+        <start_paused>true</start_paused>
+        <use_event>true</use_event>
+      </plugin>
+
+      <!-- World statistics -->
+      <plugin filename="WorldStats" name="World stats">
+        <gz-gui>
+          <title>World stats</title>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="bool" key="resizable">false</property>
+          <property type="double" key="height">110</property>
+          <property type="double" key="width">290</property>
+          <property type="double" key="z">1</property>
+          <property type="string" key="state">floating</property>
+          <anchors target="3D View">
+            <line own="right" target="right"/>
+            <line own="bottom" target="bottom"/>
+          </anchors>
+        </gz-gui>
+        <sim_time>true</sim_time>
+        <real_time>true</real_time>
+        <real_time_factor>true</real_time_factor>
+        <iterations>true</iterations>
+      </plugin>
+
+      <!-- Insert simple shapes -->
+      <plugin filename="Shapes" name="Shapes">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">0</property>
+          <property key="y" type="double">0</property>
+          <property key="width" type="double">300</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#666666</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Insert lights -->
+      <plugin filename="Lights" name="Lights">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">300</property>
+          <property key="y" type="double">0</property>
+          <property key="width" type="double">150</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#666666</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Translate / rotate -->
+      <plugin filename="TransformControl" name="Transform control">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">0</property>
+          <property key="y" type="double">50</property>
+          <property key="width" type="double">250</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Screenshot -->
+      <plugin filename="Screenshot" name="Screenshot">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">250</property>
+          <property key="y" type="double">50</property>
+          <property key="width" type="double">50</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Copy/Paste -->
+      <plugin filename="CopyPaste" name="CopyPaste">
+        <gz-gui>
+          <property key="resizable" type="bool">false</property>
+          <property key="x" type="double">300</property>
+          <property key="y" type="double">50</property>
+          <property key="width" type="double">100</property>
+          <property key="height" type="double">50</property>
+          <property key="state" type="string">floating</property>
+          <property key="showTitleBar" type="bool">false</property>
+          <property key="cardBackground" type="string">#777777</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Inspector -->
+      <plugin filename="ComponentInspector" name="Component inspector">
+        <gz-gui>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+      </plugin>
+
+      <!-- Entity tree -->
+      <plugin filename="EntityTree" name="Entity tree">
+        <gz-gui>
+          <property type="bool" key="showTitleBar">false</property>
+          <property type="string" key="state">docked</property>
+        </gz-gui>
+      </plugin>
+    </gui>
+
+    <!-- ODE collision detector: the park terrain is a <heightmap> collision, which DART only
+         handles with ODE (with the default detector robots rest ~5 m above the ground), and
+         ODE also collides properly with the tree meshes. 4 ms steps, like large_warehouse_world. -->
+    <physics name="4ms" type="ignored">
+      <max_step_size>0.004</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <dart>
+        <collision_detector>ode</collision_detector>
+      </dart>
+    </physics>
+
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu"/>
+    <plugin filename="gz-sim-navsat-system" name="gz::sim::systems::NavSat"/>
+
+    <gravity>0 0 -9.8</gravity>
+    <magnetic_field>6e-06 2.3e-05 -4.2e-05</magnetic_field>
+    <atmosphere type="adiabatic"/>
+
+    <scene>
+      <grid>false</grid>
+      <ambient>0.4 0.4 0.4 1</ambient>
+      <background>0.7 0.7 0.7 1</background>
+      <shadows>true</shadows>
+    </scene>
+
+    <!-- Nathan Benderson Park, Sarasota (FL) -->
+    <spherical_coordinates>
+      <surface_model>EARTH_WGS84</surface_model>
+      <world_frame_orientation>ENU</world_frame_orientation>
+      <latitude_deg>27.3742</latitude_deg>
+      <longitude_deg>-82.4520</longitude_deg>
+      <elevation>2</elevation>
+    </spherical_coordinates>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <include>
+      <uri>model://nathan_benderson_park</uri>
+      <name>nathan_benderson_park</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- Water surface at z = 0 -->
+    <include>
+      <uri>model://lake_water</uri>
+      <name>lake_water</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
+
+    <!-- Town: models along the park roads around x = -50, y = 900 (terrain z ~ 4.45) -->
+
+    <!-- West road (x ~ -120) -->
+
+    <include>
+      <uri>model://osrf_first_office</uri>
+      <name>osrf_first_office</name>
+      <pose>-103 910 4.45 0 0 -1.5708</pose>
+    </include>
+
+
+    <!-- Central road (x ~ -65), west side -->
+    <include>
+      <uri>model://post_office</uri>
+      <name>post_office</name>
+      <pose>-74 936 4.45 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://grocery_store</uri>
+      <name>grocery_store</name>
+      <pose>-80 910 4.45 0 0 -1.5708</pose>
+    </include>
+
+
+    <!-- Central road (x ~ -65), east side -->
+
+    <include>
+      <uri>model://collapsed_fire_station</uri>
+      <name>collapsed_fire_station</name>
+      <pose>-48 861 4.39 0 0 -1.5708</pose>
+    </include>
+
+    <!-- Cross road (y ~ 960), south side -->
+    <include>
+      <uri>model://salon</uri>
+      <name>salon</name>
+      <pose>-54 948 4.45 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://thrift_shop</uri>
+      <name>thrift_shop</name>
+      <pose>-44 949 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://law_office</uri>
+      <name>law_office</name>
+      <pose>-32 950 4.44 0 0 3.1416</pose>
+    </include>
+
+
+    <!-- Cross road (y ~ 960), north side -->
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house</name>
+      <pose>-70 972 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://fire_station</uri>
+      <name>fire_station</name>
+      <pose>-48 972 4.45 0 0 3.141592</pose>
+    </include>
+
+    <!-- Vehicles parked next to the curb -->
+
+    <!-- Houses -->
+    <!-- Central road (x ~ -65), west side -->
+    <include>
+      <uri>model://house_1</uri>
+      <name>house_1</name>
+      <pose>-77 845 4.45 0 0 1.5708</pose>
+    </include>
+
+    <!-- Central road (x ~ -65), east side -->
+    <include>
+      <uri>model://house_3</uri>
+      <name>house_3</name>
+      <pose>-53 835 4.39 0 0 -1.5708</pose>
+    </include>
+
+    <!-- Cross road (y ~ 960), north side -->
+    <include>
+      <uri>model://house_2</uri>
+      <name>house_2</name>
+      <pose>-89 970 4.45 0 0 0</pose>
+    </include>
+
+    <!-- Additional instances along the same road grid -->
+    <!-- Collapsed buildings (higher priority, repeated) -->
+    <include>
+      <uri>model://collapsed_fire_station</uri>
+      <name>collapsed_fire_station_2</name>
+      <pose>-105 851 4.45 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_2</name>
+      <pose>-106 972 4.45 0 0 0</pose>
+    </include>
+
+
+    <include>
+      <uri>model://collapsed_fire_station</uri>
+      <name>collapsed_fire_station_3</name>
+      <pose>-80 818 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_3</name>
+      <pose>27 947 4.45 0 0 3.1416</pose>
+    </include>
+
+
+    <include>
+      <uri>model://collapsed_fire_station</uri>
+      <name>collapsed_fire_station_4</name>
+      <pose>-105 819 4.45 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_4</name>
+      <pose>-116 990 4.45 0 0 -1.5708</pose>
+    </include>
+
+
+    <!-- Other buildings -->
+
+    <include>
+      <uri>model://fire_station</uri>
+      <name>fire_station_2</name>
+      <pose>-76 790 4.45 0 0 1.5708</pose>
+    </include>
+
+
+    <include>
+      <uri>model://grocery_store</uri>
+      <name>grocery_store_2</name>
+      <pose>-45 738 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://house_1</uri>
+      <name>house_1_2</name>
+      <pose>29 839 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://house_2</uri>
+      <name>house_2_2</name>
+      <pose>86 827 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://house_3</uri>
+      <name>house_3_2</name>
+      <pose>107 821 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://law_office</uri>
+      <name>law_office_2</name>
+      <pose>-74 948 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://osrf_first_office</uri>
+      <name>osrf_first_office_2</name>
+      <pose>136 824 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://post_office</uri>
+      <name>post_office_2</name>
+      <pose>44 946 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://salon</uri>
+      <name>salon_2</name>
+      <pose>-21 950 4.43 0 0 3.1416</pose>
+    </include>
+
+
+    <include>
+      <uri>model://thrift_shop</uri>
+      <name>thrift_shop_2</name>
+      <pose>-30 970 4.45 0 0 0</pose>
+    </include>
+
+
+    <!-- New buildings along the road grid -->
+    <include>
+      <uri>model://fast_food</uri>
+      <name>fast_food</name>
+      <pose>-49 910 4.39 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://police_station</uri>
+      <name>police_station</name>
+      <pose>-48 889 4.39 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://water_tower</uri>
+      <name>water_tower</name>
+      <pose>-54 931 4.39 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_police_station</uri>
+      <name>collapsed_police_station</name>
+      <pose>-103 939 4.45 0 0 -1.5708</pose>
+    </include>
+
+
+    <!-- Vehicles and dumpsters on the roads, random yaw -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- More dumpsters on the roads near the vehicles, random yaw -->
+
+
+
+
+
+
+    <!-- Victims on the roads, random position and yaw (also listed in config/nathan_benderson_town_victims.yaml) -->
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- More buildings on the road edges of the island -->
+    <!-- Collapsed buildings (higher priority) -->
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_5</name>
+      <pose>106 796 4.45 0 0 3.1416</pose>
+    </include>
+
+
+    <include>
+      <uri>model://collapsed_fire_station</uri>
+      <name>collapsed_fire_station_5</name>
+      <pose>233 828 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_6</name>
+      <pose>126 793 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_7</name>
+      <pose>-46 1095 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_8</name>
+      <pose>202 871 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_9</name>
+      <pose>-38 1073 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_10</name>
+      <pose>-13 1032 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://collapsed_house</uri>
+      <name>collapsed_house_11</name>
+      <pose>221 862 4.45 0 0 3.1416</pose>
+    </include>
+
+    <!-- Other buildings -->
+    <include>
+      <uri>model://fire_station</uri>
+      <name>fire_station_3</name>
+      <pose>158 790 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://house_2</uri>
+      <name>house_2_3</name>
+      <pose>66 978 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://house_3</uri>
+      <name>house_3_3</name>
+      <pose>47 817 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://law_office</uri>
+      <name>law_office_3</name>
+      <pose>-84 949 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://police_station</uri>
+      <name>police_station_2</name>
+      <pose>70 839 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://post_office</uri>
+      <name>post_office_3</name>
+      <pose>-54 766 4.30 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://salon</uri>
+      <name>salon_3</name>
+      <pose>56 966 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://thrift_shop</uri>
+      <name>thrift_shop_3</name>
+      <pose>-17 1008 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://water_tower</uri>
+      <name>water_tower_2</name>
+      <pose>-22 992 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://house_2</uri>
+      <name>house_2_4</name>
+      <pose>-24 1052 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://house_3</uri>
+      <name>house_3_4</name>
+      <pose>177 789 4.45 0 0 3.1416</pose>
+    </include>
+
+    <include>
+      <uri>model://law_office</uri>
+      <name>law_office_4</name>
+      <pose>35 970 4.45 0 0 0</pose>
+    </include>
+
+    <include>
+      <uri>model://police_station</uri>
+      <name>police_station_3</name>
+      <pose>96 953 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://post_office</uri>
+      <name>post_office_4</name>
+      <pose>22 1005 4.45 0 0 -0.65</pose>
+    </include>
+
+    <include>
+      <uri>model://salon</uri>
+      <name>salon_4</name>
+      <pose>-74 773 4.45 0 0 1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://thrift_shop</uri>
+      <name>thrift_shop_4</name>
+      <pose>-120 973 4.45 0 0 -1.5708</pose>
+    </include>
+
+    <include>
+      <uri>model://water_tower</uri>
+      <name>water_tower_3</name>
+      <pose>-111 773 4.45 0 0 -1.5708</pose>
+    </include>
+
+
+
+
+    <!-- More vehicles and dumpsters on the island roads, random position and yaw -->
+
+
+
+
+
+
+
+
+
+
+  </world>
+</sdf>

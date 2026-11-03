@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<robot name="rear_axle" xmlns:xacro="http://wiki.ros.org/xacro">
+
+	<xacro:include filename="$(find easynav_playground_ackermann_description)/urdf/wheel/wheel.urdf.xacro"/>
+
+  <xacro:macro name="rear_axle" params="prefix parent *origin">
+
+    <joint name="${prefix}rear_axle_joint" type="fixed">
+      <parent link="${parent}"/>
+      <child link="${prefix}rear_axle_link"/>
+      <xacro:insert_block name="origin" />
+    </joint>
+
+    <link name="${prefix}rear_axle_link">
+		<inertial>
+			<mass value="30.0" />
+			<origin xyz="0 0 0" rpy="${PI/2} 0 0"/>
+			<inertia  ixx="0.08437499999999999" ixy="0.0"  ixz="0.0"  iyy="4.64581"  iyz="0.0"  izz="4.64581" />
+		</inertial>
+		<visual>
+			<origin xyz="0 0 0" rpy="${PI/2} 0 0" />
+			<geometry>
+				<cylinder radius="0.075" length="1.357"/>
+			</geometry>
+		</visual>
+		<collision>
+			<origin xyz="0 0 0" rpy="${PI/2} 0 0" />
+			<geometry>
+				<cylinder radius="0.075" length="1.357"/>
+			</geometry>
+		</collision>
+    </link>
+
+    <xacro:wheel prefix="$(arg prefix)rear_right_" parent="${prefix}rear_axle_link" reflect="true">
+      <origin xyz="0 -0.786 0.0" rpy="${-PI/2} 0 0"/>
+    </xacro:wheel>
+
+	<xacro:wheel prefix="$(arg prefix)rear_left_" parent="${prefix}rear_axle_link" reflect="false">
+      <origin xyz="0 0.786 0.0" rpy="${-PI/2} 0 0"/>
+    </xacro:wheel>
+
+  </xacro:macro>
+</robot>

@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<sdf version="1.9">
+  <model name="house_1">
+    <static>true</static>
+    <link name="link">
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>meshes/house_1.dae</uri>
+            <scale>1.5 1.5 1.5</scale>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>meshes/house_1.dae</uri>
+            <scale>1.5 1.5 1.5</scale>
+          </mesh>
+        </geometry>
+        <!-- PBR material: the original Ogre 1 material script is not supported by ogre2 -->
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <specular>0.3 0.3 0.3 1</specular>
+          <pbr>
+            <metal>
+              <albedo_map>materials/textures/House_1_Diffuse.png</albedo_map>
+              <roughness>0.8</roughness>
+              <metalness>0.0</metalness>
+            </metal>
+          </pbr>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>
