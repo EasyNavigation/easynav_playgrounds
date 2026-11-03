@@ -89,7 +89,8 @@ Limits:
   (the model's centre of buoyancy is at its centre of mass).
 * The shader needs the Gazebo GUI (it runs on the GPU; headless there is nothing to draw). The surface seen
   from **below** stays flat, so the submarine sees a flat ceiling. The water is more opaque than before
-  (`alpha` 0.7, in `synthetic_sea.py`): the sea floor is seen through it only in the shallows.
+  (`alpha` 0.7, in `synthetic_sea.py`): the sea floor is seen through it only in the shallows, and the
+  submarine at 3 m is seen from above, but dim (checked with the GUI: the waves are drawn as with the boat).
 * The torques on the boat are scaled to the stiffness that was measured in Gazebo (see the comments of
   `wave_node.py`), and the boat's roll and pitch damping was raised in `wamv.sdf.in` for this.
 
