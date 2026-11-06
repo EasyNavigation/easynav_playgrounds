@@ -5,7 +5,7 @@
      thrust: tools/boat_cmd.py turns a Twist into
        /boat/left_thrust   -> /model/wamv/joint/left_engine_propeller_joint/cmd_thrust    (N, positive is forward)
        /boat/right_thrust  -> /model/wamv/joint/right_engine_propeller_joint/cmd_thrust
-     @X@ @Y@ @Z@ @YAW@ are filled in when the world is made. -->
+     @X@ @Y@ @Z@ @YAW@ (and the sensors, at the end) are filled in when the world is made. -->
         <include>
       <name>wamv</name>
       <pose>@X@ @Y@ @Z@ 0 0 @YAW@</pose>
@@ -71,4 +71,7 @@
         <robot_base_frame>base_footprint</robot_base_frame>
         <odom_publish_frequency>50</odom_publish_frequency>
       </plugin>
+
+      <!-- the sensors (tools/marine_sensors.py of the worlds package) -->
+      @SENSORS@
     </include>

@@ -32,6 +32,7 @@ the water, a shoal 4 m under the surface, a seamount and a ridge. 1 km x 1 km; z
 | `radius` | `''` | half-side of the square, m (500; at least 100) |
 | `altitude` | `''` | `robot:=submarine`: depth under the surface, m (half way to the floor, at most 3) |
 | `gui` | `true` | Gazebo GUI |
+| `rviz` | `true` | RViz with the sensors of the vehicle (see Sensors) |
 | `waves` | `false` | `true`: the vehicle moves as in a sea and the water is drawn with the waves (see Waves) |
 | `wave_visual` | `true` | `waves:=true`: draw the waves on the water. `false`: the water that is drawn stays flat and only the vehicle moves |
 | `wave_height` | `0.4` | `waves:=true`: height of the main wave, m, crest to trough (0 to 2) |
@@ -94,9 +95,58 @@ Limits:
 * The torques on the boat are scaled to the stiffness that was measured in Gazebo (see the comments of
   `wave_node.py`), and the boat's roll and pitch damping was raised in `wamv.sdf.in` for this.
 
+## Sensors
+
+Each vehicle carries the sensors of its kind. Their place, rate and noise are in one table,
+`tools/marine_sensors.py` of the worlds package, from which the launch makes the SDF, the bridge and the
+static transforms `base_link -> <frame>`. `rviz:=true` (default) opens RViz with all of them, following the
+vehicle.
+
+**Boat (WAM-V)**
+
+| Sensor | Topic | Type | Frame | Notes |
+| --- | --- | --- | --- | --- |
+| IMU | `/imu/data` | `sensor_msgs/Imu` | `imu_link` | 100 Hz, the noise of VRX's WAM-V |
+| Magnetometer | `/imu/mag` | `sensor_msgs/MagneticField` | `imu_link` | 20 Hz, tesla, ENU |
+| GNSS | `/gps/fix` | `sensor_msgs/NavSatFix` | `gps_link` | 5 Hz, 1 m (horizontal) and 2 m (vertical) of noise; `/gps/raw` is Gazebo's |
+| 3D lidar | `/lidar/points` | `sensor_msgs/PointCloud2` | `lidar_link` | VLP-16-like on a mast: 16 x 900 rays, 30 deg vertical, 100 m, 10 Hz; only what is over the water |
+| Camera | `/camera/image_raw`, `/camera/camera_info` | `sensor_msgs/Image`, `CameraInfo` | `camera_optical_link` | 1280 x 720, 80 deg, 15 Hz, 10 deg down |
+| Echosounder | `/echosounder` | `sensor_msgs/Range` (ULTRASOUND) | `echosounder_link` | under the left float, a cone of 8 deg, 150 m, 5 Hz: the depth under the keel |
+
+**Submarine (Tethys)**
+
+| Sensor | Topic | Type | Frame | Notes |
+| --- | --- | --- | --- | --- |
+| IMU | `/imu/data` | `sensor_msgs/Imu` | `imu_link` | 100 Hz |
+| Magnetometer | `/imu/mag` | `sensor_msgs/MagneticField` | `imu_link` | 20 Hz, tesla, ENU |
+| Depth gauge | `/pressure`, `/depth` | `sensor_msgs/FluidPressure` (Pa), `geometry_msgs/PoseWithCovarianceStamped` (z of `base_link` in `odom`) | `pressure_link` | 10 Hz, 2 cm of noise |
+| DVL | `/dvl/data`, `/dvl/twist`, `/dvl/velocity`, `/dvl/altitude` | `marine_acoustic_msgs/Dvl`, `TwistWithCovarianceStamped`, `TwistStamped`, `Range` | `dvl_link` | four beams 30 deg off the vertical, bottom tracking up to 100 m, 5 Hz; the twist only with the bottom in range |
+| GNSS | `/gps/fix` | `sensor_msgs/NavSatFix` | `gps_link` | on a short mast: no fix under the water (`STATUS_NO_FIX`), and 5 s after the antenna comes out |
+| Imaging sonar | `/sonar/image`, `/sonar/image_fan`, `/sonar/points` | `marine_acoustic_msgs/ProjectedSonarImage`, `Image` (mono8), `PointCloud2` | `sonar_link` (z forward, x up), `sonar_rays_link` | forward-looking multibeam like an Oculus M750d: 256 beams over 130 x 20 deg, 0.5-50 m in 0.1 m bins, 10 Hz, 20 deg down |
+
+The simulator's own pose of the vehicle is `/ground_truth/odom` (not a sensor): the autopilots, the waves
+and the transforms `odom -> base_footprint` are made from it.
+
+How what Gazebo does not have is made:
+
+* **Imaging sonar.** Gazebo has no acoustic sensor. A fan of rays (`gpu_lidar`, 512 x 32 over the sonar's
+  field of view) finds what the sound would hit, and `tools/sonar_node.py` turns the hits into echoes as a
+  multibeam forms its image: Lambert backscatter (cos^2 of the incidence, from the neighbouring hits), the
+  vertical beam pattern, the two-way absorption of the water, no elevation (every hit of a beam at the same
+  range adds to one cell), shadows behind what is hit, the spread of the pulse and of the beam, speckle and
+  a noise floor, log-compressed to 8 bits. It is an image with the look and the geometry of a sonar, not a
+  physical simulation of the sound (multipath, the surface's reverberation and the water column are left
+  out).
+* **Depth gauge.** Gazebo has no water pressure sensor: `tools/marine_sensor_node.py` works the depth out
+  from the true pose, with noise (the waves are left out of it).
+* **GNSS under the water, echosounder, lidar.** The same node takes the fix away under the water, gives the
+  echosounder's first echo as a `Range`, and drops the lidar's points under the surface: the ray sensors do
+  not see the water's surface (`visibility_flags`, it is a drawing) and would show the sea floor through it.
+
 ## Driving it
 
-Command it with a `Twist` on `/cmd_vel`; the pose is `/odom` (and `odom -> base_link`, `map -> odom` on `/tf`):
+Command it with a `Twist` on `/cmd_vel`; its true pose is `/ground_truth/odom` (and `odom -> base_link`,
+`map -> odom` on `/tf`):
 
 ```bash
 ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 1.5}, angular: {z: 0.2}}"                 # boat
@@ -108,10 +158,13 @@ older than a second stops the engines.
 
 ## Limits
 
-* No navigation system comes with it: the vehicles carry no sensors and none of the EasyNav systems of the
-  family targets water, so this package has no `params/` or `maps/` of its own, unlike the Kobuki, Summit
-  and TIAGo playgrounds. What a navigation system needs from the simulation is there (`/odom`, `/tf`,
-  `/clock`, a world with a solid floor).
+* No navigation system comes with it: none of the EasyNav systems of the family targets water yet, so
+  this package has no `params/` or `maps/` of its own, unlike the Kobuki, Summit and TIAGo playgrounds.
+  What a navigation system needs from the simulation is there (the sensors above, `/tf`, `/clock`, a
+  world with a solid floor).
+* `marine_acoustic_msgs/Dvl` cannot be built from Python as generated on Rolling and Lyrical (its field
+  `range` hides the builtin in `__init__`); `tools/marine_sensor_node.py` patches its `__init__`
+  (`fix_dvl_init`) before using it. A Python node of your own that reads `/dvl/data` needs the same.
 * The submarine is a torpedo: it steers and dives only while it moves forward. Near the coast, or over
   the shoal, it can run aground: the floor is solid.
 * The WAM-V and the Tethys come from Gazebo Fuel the first time (internet).
@@ -121,7 +174,7 @@ older than a second stops the engines.
 | Package | Contents | Depends on |
 | --- | --- | --- |
 | `easynav_playground_marine_description` | the WAM-V and Tethys models | nothing |
-| `easynav_playground_marine_worlds` | the sea, the vehicle in it, the bridge and the autopilots | Gazebo, `ros_gz`, ROS 2 (`rclpy`, `tf2_ros`), numpy |
+| `easynav_playground_marine_worlds` | the sea, the vehicle and its sensors in it, the bridge, the autopilots and RViz | Gazebo, `ros_gz`, ROS 2 (`rclpy`, `tf2_ros`, `sensor_msgs_py`, `marine_acoustic_msgs`), RViz (`rviz_imu_plugin`), numpy |
 | `easynav_playground_marine` (this) | the launch | the other two |
 
 ## Licenses
