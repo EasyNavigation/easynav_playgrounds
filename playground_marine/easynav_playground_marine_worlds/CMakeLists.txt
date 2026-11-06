@@ -3,10 +3,10 @@ project(easynav_playground_marine_worlds)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY launch worlds DESTINATION share/${PROJECT_NAME})
+install(DIRECTORY launch worlds rviz DESTINATION share/${PROJECT_NAME})
 install(FILES LICENSE DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS tools/synthetic_sea.py tools/odom_to_tf.py tools/auv_cmd.py tools/boat_cmd.py
-        tools/wave_node.py
+        tools/wave_node.py tools/marine_sensors.py tools/marine_sensor_node.py tools/sonar_node.py
         DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
@@ -21,6 +21,9 @@ if(BUILD_TESTING)
   ament_add_pytest_test(wave_node test/test_wave_node.py)
   ament_add_pytest_test(synthetic_sea test/test_synthetic_sea.py)
   ament_add_pytest_test(marine_sim_launch test/test_marine_sim_launch.py)
+  ament_add_pytest_test(marine_sensors test/test_marine_sensors.py)
+  ament_add_pytest_test(marine_sensor_node test/test_marine_sensor_node.py)
+  ament_add_pytest_test(sonar_node test/test_sonar_node.py)
 endif()
 
 ament_package()
