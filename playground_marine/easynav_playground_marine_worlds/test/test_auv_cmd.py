@@ -58,20 +58,32 @@ def test_nothing_is_commanded_beyond_the_limits_of_the_model():
 
 def test_a_positive_yaw_rate_turns_the_rudder_the_way_that_turned_the_model_left():
     c = autopilot().AuvController()
-    _, rudder, _ = c.step((1.8, 0.2, 0.0), at(u=1.8))
-    assert rudder > 0.0                                  # measured: +0.17 rad gave +0.22 rad/s
-    assert c.step((1.8, -0.2, 0.0), at(u=1.8))[1] < 0.0
+    _, rudder, _ = c.step((1.8, 0.04, 0.0), at(u=1.8))      # it turns at 0.055 rad/s at most
+    assert rudder > 0.0                                  # measured: +0.17 rad gave +0.055 rad/s
+    assert c.step((1.8, -0.04, 0.0), at(u=1.8))[1] < 0.0
     # already turning as asked: less rudder than when it is not turning yet
-    assert c.step((1.8, 0.2, 0.0), at(u=1.8, r=0.2))[1] < rudder
+    assert c.step((1.8, 0.04, 0.0), at(u=1.8, r=0.04))[1] < rudder
+
+
+def test_the_joints_get_the_commands_of_a_model_whose_x_is_the_stern():
+    a = autopilot()
+    # measured bow first: -30 N on the propeller drove it forward at 2.2 m/s, +0.17 rad of rudder
+    # turned it left, +0.17 rad of elevator lifted the bow and it climbed
+    assert a.joint_commands(30.0, 0.1, 0.1) == pytest.approx((-30.0, 0.1, -0.1))
+    assert a.joint_commands(0.0, 0.0, 0.0) == (0.0, 0.0, 0.0)
+    c = a.AuvController()
+    thrust, _, elevator = a.joint_commands(*c.step((2.0, 0.0, 0.3), at(u=1.5)))
+    assert thrust < 0.0 and elevator > 0.0               # faster and up: push, and lift the bow
 
 
 def test_a_slow_vehicle_needs_more_rudder_for_the_same_turn_because_the_fins_act_with_speed():
     c = autopilot().AuvController()
-    assert c.step((1.0, 0.1, 0.0), at(u=1.0))[1] > c.step((2.0, 0.1, 0.0), at(u=2.0))[1]
+    assert c.step((1.0, 0.02, 0.0), at(u=1.0))[1] > c.step((2.0, 0.02, 0.0), at(u=2.0))[1]
 
 
 def test_to_climb_it_pitches_the_nose_up_and_to_dive_down():
-    # the pitch of the model is positive nose down: the elevator +0.17 gave +40 degrees and a dive
+    # the pitch of base_link is positive bow down, and so is the controller's elevator (the joint's
+    # is the opposite: see the test of joint_commands)
     c = autopilot().AuvController()
     _, _, elevator_up = c.step((2.0, 0.0, 0.3), at(u=2.0))
     _, _, elevator_down = c.step((2.0, 0.0, -0.3), at(u=2.0))

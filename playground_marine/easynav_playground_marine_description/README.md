@@ -12,7 +12,7 @@ neither EasyNav nor ROS.
 | --- | --- |
 | `models/marine_wamv/` | The WAM-V of Gazebo Fuel (OpenRobotics `wam-v`, VRX's 16 ft catamaran) with the changes that make it float and go straight in the world's graded buoyancy: the floats are boxes (that plugin supports only boxes and spheres) and the two joints that let each engine swing about the vertical are fixed. `wamv.sdf.in` adds a thruster on each propeller, drag and an odometry publisher; it steers with the difference of the thrusts |
 | `models/marine_waves/` | The shaders and textures that draw the waves of the water (not a model): the Gerstner waves of the Waves model of Gazebo Fuel (OpenRobotics), with the transparency as a parameter. See its README |
-| `models/marine_tethys/` | `tethys.sdf.in`: the MBARI Tethys LRAUV of Gazebo Fuel (`accurrent/MBARI Tethys LRAUV`) with the plugins of the gz-sim demo `auv_controls.sdf`: fin position controllers, propeller thruster, fin lift and drag, hydrodynamics |
+| `models/marine_tethys/` | `tethys.sdf.in`: the MBARI Tethys LRAUV of Gazebo Fuel (`accurrent/MBARI Tethys LRAUV`) with the plugins of the gz-sim demo `auv_controls.sdf`: fin position controllers, propeller thruster, fin lift and drag, hydrodynamics. The model's +x is its stern: the launch turns it to go bow first, and the fins' lift and drag take the flow from -x (`<forward>-1 0 0</forward>`) |
 
 The `*.sdf.in` files are snippets for `<world>`: `@X@ @Y@ @Z@ @YAW@` (and `@MODELS@`, the directory of
 the models) are filled in by `marine_sim.launch.py` of the worlds package, which also adds the model's

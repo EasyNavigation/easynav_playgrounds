@@ -77,7 +77,7 @@ def test_every_gazebo_sensor_is_in_the_sdf_with_its_pose_frame_and_topic(ms, rob
                  e.find('topic').text in [b[0].replace('/points', '') for b in s.bridge])
         assert e.get('element_id') == 'base_link' and e.get('action') == 'add'
         pose = [float(v) for v in e.find('pose').text.split()]
-        assert pose == pytest.approx(s.pose, abs=1e-4)
+        assert pose == pytest.approx(ms.model_pose(robot, s.pose), abs=1e-4)
         assert e.find('always_on').text == '1' and float(e.find('update_rate').text) > 0.0
 
 
@@ -183,9 +183,9 @@ def test_the_echosounder_looks_straight_down(ms):
 def test_the_sonar_looks_where_the_submarine_goes_and_its_image_frame_is_acoustic(ms):
     f = frames(ms, 'submarine')
     rays, acoustic = f['sonar_rays_link'][1], f['sonar_link'][1]
-    assert f['sonar_rays_link'][0][0] * ms.TETHYS_FORWARD > 0.0      # at the end it goes to
+    assert f['sonar_rays_link'][0][0] > 0.0                           # at the bow
     ahead = rotate(rays, [1, 0, 0])
-    assert ahead[0] * ms.TETHYS_FORWARD > 0.0 and ahead[2] < 0.0      # forward and down
+    assert ahead[0] > 0.0 and ahead[2] < 0.0                          # forward and down
     # marine_acoustic_msgs: z forward, x up, y to starboard
     assert rotate(acoustic, [0, 0, 1]) == pytest.approx(ahead)
     assert rotate(acoustic, [1, 0, 0]) == pytest.approx(rotate(rays, [0, 0, 1]))
@@ -205,3 +205,25 @@ def test_the_sonar_rays_cover_its_field_of_view_more_finely_than_its_beams(ms):
     assert float(v.find('max_angle').text) - float(v.find('min_angle').text) == \
         pytest.approx(s['vertical_fov'], abs=1e-5)
     assert float(e.find('lidar/range/max').text) == s['max_range']
+
+
+def test_the_tethys_model_is_turned_so_that_base_link_looks_to_its_bow(ms):
+    # the model has its propeller (x = 1.43) and fins at +x: its bow is at -x
+    assert ms.MODEL_YAW['submarine'] == pytest.approx(math.pi)
+    assert ms.MODEL_YAW['boat'] == 0.0
+    sonar = ms.model_pose('submarine', ms.sensor('submarine', 'sonar').pose)
+    assert sonar[0] < 0.0                                             # at the model's bow
+    q = ms._quaternion(*sonar[3:])
+    assert rotate(q, [1, 0, 0])[0] < 0.0 and rotate(q, [1, 0, 0])[2] < 0.0   # to the bow, down
+
+
+@pytest.mark.parametrize('pose', [(0.3, -0.2, 0.1, 0.1, 0.2, 0.3), (1.0, 0.0, 0.0, 0.0, 0.35, 0.0),
+                                  (0.0, 0.0, -0.13, 0.0, 0.0, 0.0)])
+def test_a_pose_in_base_link_is_the_same_place_and_direction_in_the_model(ms, pose):
+    m = ms.MODEL_YAW['submarine']
+    model = ms.model_pose('submarine', pose)
+    turn = ms._quaternion(0.0, 0.0, -m)                              # base_link in the model
+    assert np.asarray(model[:3]) == pytest.approx(rotate(turn, pose[:3]), abs=1e-9)
+    direction = rotate(ms._multiply(turn, ms._quaternion(*pose[3:])), [1, 0, 0])
+    assert rotate(ms._quaternion(*model[3:]), [1, 0, 0]) == pytest.approx(direction, abs=1e-9)
+    assert ms.model_pose('boat', pose) == pytest.approx(pose)         # the boat is not turned

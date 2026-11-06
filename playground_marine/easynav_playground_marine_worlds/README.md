@@ -27,6 +27,7 @@ Arguments: `robot` (`boat`, `submarine`), `radius`, `altitude` (the submarine's 
 | `launch/world.launch.yaml` | Gazebo server (and client) with a world file |
 | `tools/boat_cmd.py`, `tools/auv_cmd.py` | The autopilots: a `Twist` on `/cmd_vel` in, thrust (and fins) out |
 | `tools/wave_node.py` | `waves:=true`: the force and torque that a wave field adds to the vehicle (`/waves/wrench`, bridged to Gazebo's `ApplyLinkWrench`) and the parameters of the shader that draws the same waves (`Waves.shader_params()`) |
+| `tools/ground_truth.py` | The submarine's true pose: Gazebo's odometry of the Tethys model (whose +x is its stern) turned to that of `base_link` (x to the bow), on `/ground_truth/odom` |
 | `tools/odom_to_tf.py` | The true pose (`/ground_truth/odom`) to `odom -> base_footprint -> base_link`, `map -> odom`, and `base_link -> <sensor frame>` (`--frame`) |
 | `tools/marine_sensors.py` | The table of the sensors of each vehicle: from it the SDF (`sdf()`), the bridge (`bridge_entries()`) and the static transforms (`static_frames()`) |
 | `tools/marine_sensor_node.py` | What Gazebo does not give as such: the GNSS without a fix under the water, the depth gauge, the echosounder's `Range`, the DVL's twist and altitude, the lidar without what is under the water |

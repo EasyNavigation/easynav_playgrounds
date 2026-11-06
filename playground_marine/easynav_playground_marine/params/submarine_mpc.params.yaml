@@ -20,30 +20,30 @@ controller_node:
   ros__parameters:
     use_sim_time: true
     # What tools/auv_cmd.py gets out of the Tethys: forward only (it steers and dives only while it
-    # moves), about 0.2 rad/s of yaw at 1-2 m/s, and no lateral motion
+    # moves), at most about 0.05 rad/s of yaw (a turning circle of some 30 m), and no lateral motion
     robot_limits:
       max_linear_vel: 1.5
       min_linear_vel: 0.0
       max_lateral_vel: 0.0
       max_vertical_vel: 0.3
-      max_angular_vel: 0.2
+      max_angular_vel: 0.05
       max_linear_acc: 0.3
       max_linear_decel: 0.5
       max_lateral_acc: 0.1        # must be positive; max_lateral_vel 0 keeps it from moving aside
       max_lateral_decel: 0.1
       max_vertical_acc: 0.2
       max_vertical_decel: 0.3
-      max_angular_acc: 0.2
-      max_angular_decel: 0.3
+      max_angular_acc: 0.05
+      max_angular_decel: 0.05
     controller_types: [mpc]
     mpc:
       rt_freq: 30.0
       plugin: easynav_mpc_controller/MPCController
       motion_model: aerial
       horizon_steps: 30
-      dt: 0.2                     # 6 s ahead: it is slow to turn
+      dt: 0.4                     # 12 s ahead: it is slow to turn
       time_constant: 1.0          # the autopilot's response
-      path_smoothing: 7.0         # a turning radius of about 5 m
+      path_smoothing: 20.0        # its turning circle: the path's corners rounded to it
       safety_margin: 1.0
       obstacle_range: 6.0
       xy_goal_tolerance: 2.0

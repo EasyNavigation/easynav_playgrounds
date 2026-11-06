@@ -84,9 +84,8 @@ Limits:
 * At 0.6 m the boat heaves +-0.37 m and pitches +-10 deg, and bigger waves are rougher still: its floats have
   a draught of 8 cm, so a trough leaves them out of the water.
 * In waves the **submarine sinks** 0.3 to 0.8 m a minute (without waves it holds its depth exactly) and, if
-  it is not commanded, **turns in yaw** (about -50 deg a minute). The cause was not investigated; the Tethys
-  model has no yaw stability. With `cmd_vel` its autopilot steers the yaw rate, not the heading, so it
-  wanders by +-20 deg. Its roll and pitch are held by a righting torque and a damping that the node adds
+  it is not commanded, **turns in yaw** (about -50 deg a minute). The cause was not investigated. Both were
+  measured when the Tethys went stern first (before it was turned to go bow first, see Driving it). Its roll and pitch are held by a righting torque and a damping that the node adds
   (the model's centre of buoyancy is at its centre of mass).
 * The shader needs the Gazebo GUI (it runs on the GPU; headless there is nothing to draw). The surface seen
   from **below** stays flat, so the submarine sees a flat ceiling. The water is more opaque than before
@@ -162,8 +161,10 @@ EasyNav drives the Tethys (`params/submarine_mpc.params.yaml`, `rviz/submarine_e
   start where the launch puts the vehicle by default, (0, 0) at 3 m. The simulation runs with
   `odom_tf:=false`: the true pose makes no transform.
 * **Controller**: MPC with the aerial model, no lateral motion and forward only. The Tethys turns and dives
-  only while it moves: a turn asked for at a standstill (the MPC's, to face a goal behind it) is done on
-  the move by `auv_cmd.py`, at its steerage speed (0.6 m/s).
+  only while it moves, and slowly: at most about 0.05 rad/s, a turning circle of some 30 m (the fins stall
+  past 0.17 rad). The MPC is limited to that and rounds the path's corners to it (`path_smoothing`). A turn
+  asked for at a standstill (the MPC's, to face a goal behind it) is done on the move by `auv_cmd.py`, at
+  its steerage speed (0.6 m/s).
 
 Goals are under the water: put them with the **3D Goal Pose** tool of RViz (shortcut `h`), or
 
@@ -171,9 +172,10 @@ Goals are under the water: put them with the **3D Goal Pose** tool of RViz (shor
 ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: map}, pose: {position: {x: 60.0, y: 0.0, z: -6.0}, orientation: {w: 1.0}}}"
 ```
 
-Measured headless: a goal 60 m ahead and 3 m deeper is reached in 48 s, and one behind it, (-40, 30, -5),
-in 105 s, turning on the move; the estimate stays within 10 cm of the true pose. With no thrust at the
-goal the vehicle coasts on (some 30 m from 1.5 m/s): the goal is reached as it goes through.
+Measured headless: a goal 60 m ahead and 3 m deeper is reached in 48 s, and then one behind it,
+(-40, 30, -5), in 240 s, after a turn of some 30 m of radius; the estimate stays within 10 cm of the true
+pose. With no thrust at the goal the vehicle coasts on (some 10-30 m from 1.5 m/s): the goal is reached as
+it goes through.
 
 ## Driving it
 
@@ -187,6 +189,13 @@ ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist "{linear: {x: 1.5, z: -0.2
 
 `linear.x` is m/s forward, `angular.z` rad/s of yaw and, for the submarine, `linear.z` m/s up. A command
 older than a second stops the engines.
+
+The Tethys model of Gazebo Fuel has its propeller and fins at +x: it is put in the world turned half a turn,
+so that its `base_link` has x to the bow, as REP 103 asks, and goes bow first. `tools/ground_truth.py`
+turns the model's odometry into that of `base_link` (`/ground_truth/odom`), the sensors' poses are given in
+`base_link` (`marine_sensors.MODEL_YAW`), and `auv_cmd.py` turns its commands into the model's joints
+(`joint_commands()`). Bow first, the fins are behind: it is stable in yaw, and turns at most at about
+0.05 rad/s.
 
 ## Limits
 
