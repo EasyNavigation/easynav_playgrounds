@@ -3,10 +3,12 @@
      drag, and hydrodynamics. It needs the buoyancy of the water (the world's Buoyancy plugin: its
      <enable> list has `tethys`) and speed to steer: tools/auv_cmd.py turns a Twist into
        (ROS names; the bridge maps them to Gazebo's)
-       /tethys/thrust    -> /model/tethys/joint/propeller_joint/cmd_thrust   (N, positive is forward)
+       /tethys/thrust    -> /model/tethys/joint/propeller_joint/cmd_thrust   (N, positive pushes to +x: the stern)
        /tethys/rudder    -> /model/tethys/joint/vertical_fins_joint/0/cmd_pos      (rad)
-       /tethys/elevator  -> /model/tethys/joint/horizontal_fins_joint/0/cmd_pos    (rad, positive: nose down)
-     @X@ @Y@ @Z@ @YAW@ are filled in when the world is made. -->
+       /tethys/elevator  -> /model/tethys/joint/horizontal_fins_joint/0/cmd_pos    (rad, positive lifts the bow)
+     The model's +x is its stern: the launch turns it half a turn (@YAW@) so that it goes bow first, and
+     the fins' lift and drag take the flow from -x.
+     @X@ @Y@ @Z@ @YAW@ (and the sensors, at the end) are filled in when the world is made. -->
         <include>
       <name>tethys</name>
       <pose>@X@ @Y@ @Z@ 0 0 @YAW@</pose>
@@ -52,7 +54,7 @@
         <a0>0</a0>
         <area>0.0244</area>
         <upward>0 1 0</upward>
-        <forward>1 0 0</forward>
+        <forward>-1 0 0</forward>
         <link_name>vertical_fins</link_name>
         <cp>0 0 0</cp>
       </plugin>
@@ -70,7 +72,7 @@
         <a0>0</a0>
         <area>0.0244</area>
         <upward>0 0 1</upward>
-        <forward>1 0 0</forward>
+        <forward>-1 0 0</forward>
         <link_name>horizontal_fins</link_name>
         <cp>0 0 0</cp>
       </plugin>
@@ -109,4 +111,7 @@
         <robot_base_frame>base_footprint</robot_base_frame>
         <odom_publish_frequency>50</odom_publish_frequency>
       </plugin>
+
+      <!-- the sensors (tools/marine_sensors.py of the worlds package) -->
+      @SENSORS@
     </include>

@@ -23,7 +23,7 @@ Each playground is split in three packages, so that the robot model and the simu
 | [`playground_omni`](playground_omni/easynav_playground_omni) | Three- to six-wheel omnidirectional robots in two mazes | Costmap with RPP, MPPI and MPC as a holonomic robot |
 | [`playground_ackermann`](playground_ackermann/easynav_playground_ackermann) | Toyota Prius (Ackermann steering) on the Sonoma Raceway | NavMap of the track with GPS fusion (RPP, MPC) |
 | [`playground_aerial`](playground_aerial/easynav_playground_aerial) | A flying saucer (UFO) in a town | Bonxai with a 3D planner and MPC |
-| [`playground_marine`](playground_marine/easynav_playground_marine) | A boat (WAM-V) and a submarine (MBARI Tethys LRAUV) in a synthetic sea, with their autopilots and optional waves (the vehicle moves and the water is drawn) | None yet: only the simulation |
+| [`playground_marine`](playground_marine/easynav_playground_marine) | A boat (WAM-V) and a submarine (MBARI Tethys LRAUV) in a synthetic sea, with the sensors of their kind (IMU, compass, GNSS, lidar, camera and echosounder; depth gauge, DVL and an imaging sonar), RViz, their autopilots and optional waves (the vehicle moves and the water is drawn) | Submarine: Bonxai of the sea floor with a 3D planner and MPC, dead reckoning (IMU, DVL, depth; GNSS at the surface) |
 
 For example, with the Kobuki:
 

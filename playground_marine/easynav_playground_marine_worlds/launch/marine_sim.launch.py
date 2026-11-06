@@ -23,8 +23,10 @@
 * waves:=true makes the vehicle move as in a sea (tools/wave_node.py): wave_height:= (m, crest to
   trough), wave_period:= (s), wave_direction:= (degrees, where the wave goes). The water is drawn with
   those waves, by a shader, unless wave_visual:=false (then it stays flat and only the vehicle moves).
+* The vehicle carries the sensors of its kind (tools/marine_sensors.py); the simulator's own pose of
+  it is /ground_truth/odom. rviz:=true (default) opens RViz with all of them.
 
-It needs Gazebo, ros_gz and numpy; nothing else.
+It needs Gazebo, ros_gz, numpy and RViz; nothing else.
 """
 
 import importlib.util
@@ -44,21 +46,25 @@ OUT_DIR = os.path.expanduser('~/.ros/easynav_playground_marine')   # what this l
 SYNTHETIC_RADIUS = 500.0                                            # m, half-side of the sea
 WORLD_NAME = 'marine_world'                                         # worlds/marine.world.in
 MAX_WAVE_HEIGHT = 2.0                                               # m: the floats are 0.35 m high
+GROUND_TRUTH = '/ground_truth/odom'          # the simulator's pose of the vehicle (not a sensor)
 
 BOAT_HELP = (
     'robot:=boat: the WAM-V starts at (%.1f, %.1f) on the water (z = %.2f). Command it with a Twist on '
-    '/cmd_vel (linear.x m/s forward, angular.z rad/s of yaw); its pose is /odom:\n'
+    '/cmd_vel (linear.x m/s forward, angular.z rad/s of yaw); its true pose is /ground_truth/odom:\n'
     "  ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist \"{linear: {x: 1.5}, "
     "angular: {z: 0.2}}\"\n"
-    'A command older than a second stops the engines.')
+    'A command older than a second stops the engines.\n'
+    'Sensors: /imu/data /imu/mag /gps/fix /lidar/points /camera/image_raw /echosounder')
 
 SUBMARINE_HELP = (
     'robot:=submarine: the Tethys LRAUV starts at (%.1f, %.1f, %.2f). It is a torpedo: it steers and '
     'dives only while it moves forward. Command it with a Twist on /cmd_vel (linear.x m/s forward, '
-    'angular.z rad/s of yaw, linear.z m/s up); its pose is /odom:\n'
+    'angular.z rad/s of yaw, linear.z m/s up); its true pose is /ground_truth/odom:\n'
     "  ros2 topic pub -r 10 /cmd_vel geometry_msgs/msg/Twist \"{linear: {x: 1.5, z: -0.2}, "
     "angular: {z: 0.1}}\"\n"
-    'A command older than a second stops the propeller and centres the fins.')
+    'A command older than a second stops the propeller and centres the fins.\n'
+    'Sensors: /imu/data /imu/mag /gps/fix (at the surface) /pressure /depth /dvl/data /dvl/twist '
+    '/dvl/altitude /sonar/image /sonar/image_fan /sonar/points')
 
 
 def load_tool(tools, name):
@@ -91,20 +97,23 @@ def submarine_start(sea, x=0.0, y=0.0, depth=None):
     return -(min(3.0, available / 2.0) if depth is None else abs(float(depth)))
 
 
-def vehicle_world(world_in, world_out, snippet, x, y, z, buoyant):
+def vehicle_world(world_in, world_out, snippet, x, y, z, buoyant, sensors='', yaw=0.0):
     """Write `world_in` with a vehicle added and return world_out.
 
-    `snippet` is the SDF of the vehicle (@X@ @Y@ @Z@ @YAW@ filled in, @MODELS@ the directory of the
-    models), put before the last </world>. `buoyant`: the name of the model that the world's Buoyancy
-    plugin (the water) must act on: added to its <enable> list; a world without water is refused.
+    `snippet` is the SDF of the vehicle (@X@ @Y@ @Z@ @YAW@ filled in, `yaw` the model's yaw in the
+    world, @MODELS@ the directory of the
+    models, @SENSORS@ `sensors`: the SDF of its sensors), put before the last </world>.
+    `buoyant`: the name of the model that the world's Buoyancy plugin (the water) must act on: added
+    to its <enable> list; a world without water is refused.
     """
     with open(world_in) as f:
         world = f.read()
     with open(snippet) as f:
         vehicle = f.read()
-    for key, value in (('@X@', x), ('@Y@', y), ('@Z@', z), ('@YAW@', 0.0)):
+    for key, value in (('@X@', x), ('@Y@', y), ('@Z@', z), ('@YAW@', yaw)):
         vehicle = vehicle.replace(key, '%.4f' % value)
     vehicle = vehicle.replace('@MODELS@', os.path.dirname(os.path.dirname(os.path.abspath(snippet))))
+    vehicle = vehicle.replace('@SENSORS@', sensors)
     left = sorted(set(re.findall(r'@[A-Z_]+@', vehicle.split('-->', 1)[-1])))
     if left:
         raise RuntimeError('%s has placeholders this launch does not fill: %s' % (snippet, left))
@@ -155,6 +164,12 @@ def generate_launch_description():
         DeclareLaunchArgument('spawn_x', default_value='0', description='x where the vehicle starts'),
         DeclareLaunchArgument('spawn_y', default_value='0', description='y where it starts'),
         DeclareLaunchArgument('gui', default_value='true', description='Gazebo GUI'),
+        DeclareLaunchArgument('rviz', default_value='true',
+                              description='RViz with the sensors of the vehicle'),
+        DeclareLaunchArgument(
+            'odom_tf', default_value='true',
+            description='map -> odom and odom -> base_footprint from the true pose; false: a '
+                        'localizer publishes them'),
         DeclareLaunchArgument(
             'waves', default_value='false',
             description='true: the vehicle moves as in a sea, and the water is drawn with the waves'),
@@ -207,6 +222,10 @@ def setup(context):
         if not 2.0 <= period <= 15.0:
             raise RuntimeError('wave_period must be between 2 and 15 s, not %g' % period)
 
+    for name in ('rviz', 'odom_tf'):
+        if arg(name) not in ('true', 'false'):
+            raise RuntimeError("%s must be true or false, not '%s'" % (name, arg(name)))
+
     gpu = arg('gpu')
     egl_nvidia = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json'
     if gpu == 'nvidia' or (gpu == 'auto' and os.path.isfile(egl_nvidia)):
@@ -231,8 +250,10 @@ def setup(context):
     sea.make(out, radius, template=os.path.join(here, 'worlds', 'marine.world.in'), shader=shader)
     world_file = os.path.join(out, 'world.sdf')
 
-    # the world with the vehicle put in it, the bridge that carries the commands, the pose and the
-    # clock, and the autopilot of the robot
+    # the world with the vehicle and its sensors put in it, the bridge that carries the commands, the
+    # true pose, the sensors and the clock, and the autopilot of the robot
+    table = load_tool(tools, 'marine_sensors')
+    truth = ['--ros-args', '-r', 'odom:=%s' % GROUND_TRUTH]
     wave_entries = [('/world/%s/wrench' % WORLD_NAME, '/waves/wrench',
                      'ros_gz_interfaces/msg/EntityWrench', 'gz.msgs.EntityWrench',
                      'ROS_TO_GZ')] if waves_on else []
@@ -248,14 +269,16 @@ def setup(context):
         bridged = bridge_config(
             os.path.join(OUT_DIR, 'boat_bridge.yaml'), [
                 ('/clock', '/clock', 'rosgraph_msgs/msg/Clock', 'gz.msgs.Clock', 'GZ_TO_ROS'),
-                ('/model/wamv/odometry', '/odom', 'nav_msgs/msg/Odometry',
+                ('/model/wamv/odometry', GROUND_TRUTH, 'nav_msgs/msg/Odometry',
                  'gz.msgs.Odometry', 'GZ_TO_ROS'),
                 (joints + 'left_engine_propeller_joint/cmd_thrust', '/boat/left_thrust',
                  'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ'),
                 (joints + 'right_engine_propeller_joint/cmd_thrust', '/boat/right_thrust',
-                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries)
-        autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'boat_cmd.py'), '--sim-time'],
+                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries +
+            table.bridge_entries(robot))
+        autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'boat_cmd.py'), '--sim-time'] + truth,
                                    name='boat_cmd', output='screen')
+        turned = []
     else:
         altitude = arg('altitude')
         z = submarine_start(sea, x, y, float(altitude) if altitude else None)
@@ -267,30 +290,52 @@ def setup(context):
         bridged = bridge_config(
             os.path.join(OUT_DIR, 'tethys_bridge.yaml'), [
                 ('/clock', '/clock', 'rosgraph_msgs/msg/Clock', 'gz.msgs.Clock', 'GZ_TO_ROS'),
-                ('/model/tethys/odometry', '/odom', 'nav_msgs/msg/Odometry',
+                ('/model/tethys/odometry', '/tethys/model_odom', 'nav_msgs/msg/Odometry',
                  'gz.msgs.Odometry', 'GZ_TO_ROS'),
                 (joints + 'propeller_joint/cmd_thrust', '/tethys/thrust',
                  'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ'),
                 (joints + 'vertical_fins_joint/0/cmd_pos', '/tethys/rudder',
                  'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ'),
                 (joints + 'horizontal_fins_joint/0/cmd_pos', '/tethys/elevator',
-                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries)
-        autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'auv_cmd.py'), '--sim-time'],
+                 'std_msgs/msg/Float64', 'gz.msgs.Double', 'ROS_TO_GZ')] + wave_entries +
+            table.bridge_entries(robot))
+        autopilot = ExecuteProcess(cmd=[os.path.join(tools, 'auv_cmd.py'), '--sim-time'] + truth,
                                    name='auv_cmd', output='screen')
+        # the model is turned in yaw from base_link (the Tethys' propeller is at its +x)
+        turned = [ExecuteProcess(
+            cmd=[os.path.join(tools, 'ground_truth.py'), '--sim-time',
+                 '--yaw', repr(table.MODEL_YAW[robot]), '--ros-args',
+                 '-r', 'model_odom:=/tethys/model_odom', '-r', 'odom:=%s' % GROUND_TRUTH],
+            name='ground_truth', output='screen')]
     world = vehicle_world(world_file, os.path.join(OUT_DIR, 'world_%s.sdf' % robot),
-                          snippet, x, y, z, buoyant)
+                          snippet, x, y, z, buoyant, table.sdf(robot), table.MODEL_YAW[robot])
     bridge = Node(package='ros_gz_bridge', executable='parameter_bridge',
                   name='%s_bridge' % robot, output='screen', parameters=[{'config_file': bridged}])
-    odom_to_tf = ExecuteProcess(cmd=[os.path.join(tools, 'odom_to_tf.py'), '--sim-time'],
-                                name='odom_to_tf', output='screen')
+    frames = ['--frame=%s:%s' % (f[0], ','.join('%.6f' % v for v in f[1:]))
+              for f in table.static_frames(robot)]
+    no_odom = [] if arg('odom_tf') == 'true' else ['--no-odom']
+    odom_to_tf = ExecuteProcess(cmd=[os.path.join(tools, 'odom_to_tf.py'), '--sim-time'] + no_odom +
+                                frames + truth, name='odom_to_tf', output='screen')
+    sensors = [ExecuteProcess(
+        cmd=[os.path.join(tools, 'marine_sensor_node.py'), '--vehicle', robot, '--sim-time'],
+        name='marine_sensors', output='screen')]
+    if robot == 'submarine':
+        sensors.append(ExecuteProcess(cmd=[os.path.join(tools, 'sonar_node.py'), '--sim-time'],
+                                      name='sonar', output='screen'))
+    if arg('rviz') == 'true':
+        sensors.append(Node(
+            package='rviz2', executable='rviz2', name='rviz2', output='screen',
+            arguments=['-d', os.path.join(here, 'rviz', '%s.rviz' % robot)],
+            parameters=[{'use_sim_time': True}]))
     gazebo = IncludeLaunchDescription(
         AnyLaunchDescriptionSource(os.path.join(here, 'launch', 'world.launch.yaml')),
         launch_arguments={'world': world, 'gui': arg('gui')}.items())
     actions = [LogInfo(msg='marine simulation: %s, synthetic sea (%s)' % (robot, out)),
-               LogInfo(msg=help_text), gazebo, bridge, odom_to_tf, autopilot]
+               LogInfo(msg=help_text), gazebo, bridge, odom_to_tf, autopilot] + turned + sensors
     if waves_on:
         actions.append(ExecuteProcess(
             cmd=[os.path.join(tools, 'wave_node.py'), '--vehicle', robot, '--height', arg('wave_height'),
-                 '--period', arg('wave_period'), '--direction', arg('wave_direction'), '--sim-time'],
+                 '--period', arg('wave_period'), '--direction', arg('wave_direction'), '--sim-time'] +
+            truth,
             name='waves', output='screen'))
     return actions
