@@ -30,17 +30,22 @@ launch:
     name: GZ_SIM_SYSTEM_PLUGIN_PATH
     value: $(env GZ_SIM_SYSTEM_PLUGIN_PATH ''):$(env LD_LIBRARY_PATH '')
 
-# Gazebo is started without a shell (gz_sim.launch.py uses one) and the GUI client runs
-# directly ("gz sim -g" runs it as a child that outlives a SIGTERM), so the launch's
-# signals reach both: on shutdown, no server or GUI window is left behind.
+# The server is started without a shell (gz_sim.launch.py uses one), so the launch's
+# signals reach it directly.
 - executable:
     name: gz_server
     cmd: gz sim -r -s $(var world)
     output: screen
+# "gz sim -g" starts the GUI client through "sh -c" and does not pass signals on, so the
+# window would outlive the launch. bash runs it in its own process group (set -m): on
+# SIGINT it sends SIGTERM to the whole group once (Ctrl+C delivers a second SIGINT, which
+# is ignored), waits until the client has closed (it takes a few seconds) and exits with
+# 0; if the launch escalates to SIGTERM, the group is killed.
 - executable:
     if: $(var gui)
     name: gz_gui
-    cmd: $(find-pkg-prefix gz_sim_vendor)/opt/gz_sim_vendor/libexec/gz/sim/gz-sim-gui-client
+    cmd: bash -c 'set -m; gz sim -g & p=$!; trap "trap true INT; kill -TERM -- -$p; wait $p; while kill -0 -- -$p 2>/dev/null; do sleep 0.2; done; exit 0" INT; trap "kill -KILL -- -$p" TERM; wait $p'
+    sigterm_timeout: 10.0
     output: screen
 
 - node:
