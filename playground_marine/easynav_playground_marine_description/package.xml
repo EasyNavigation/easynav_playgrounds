@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_marine_description</name>
+  <version>0.1.0</version>
+  <description>The vehicles of the marine playground: the WAM-V boat and the MBARI Tethys LRAUV submarine, as Gazebo (SDF) models. No Gazebo plugin of the simulation and no EasyNav needed to use them.</description>
+  <maintainer email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</maintainer>
+  <!-- The snippets (*.sdf.in), the model files and the launchers' use of them -->
+  <license file="LICENSE">Apache-2.0</license>
+  <!-- models/marine_wamv/model.sdf, a modified copy of the WAM-V of Open Robotics in Gazebo Fuel
+       (OpenRobotics/wam-v/4): floats as boxes, joints fixed. The meshes and the Tethys are not
+       copied: they are downloaded from Gazebo Fuel (CC-BY-4.0 too) when Gazebo starts -->
+  <license file="LICENSE-CC-BY-4.0">CC-BY-4.0</license>
+  <!-- models/marine_waves/: the two textures are CC-BY-4.0 (the Waves model of Open Robotics in Gazebo
+       Fuel); the two shaders are Apache-2.0 (UUV Simulator authors, Rhys Mainwaring), the fragment one
+       modified here. -->
+  <author email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</author>
+  <author>Carlos Aguero, Cole Biesemeyer (Open Robotics: the WAM-V)</author>
+  <author>Mabel Zhang (the MBARI Tethys LRAUV model of Accurrent)</author>
+  <author>OpenRobotics, the UUV Simulator authors, Rhys Mainwaring (the waves: textures and shaders)</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
