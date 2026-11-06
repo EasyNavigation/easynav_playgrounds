@@ -1,0 +1,176 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The Tethys in the synthetic sea: dead reckoning with the IMU, the DVL and the depth gauge (a GNSS
+# fix only at the surface), the sea floor's Bonxai map, A* in 3D under the surface and over the
+# floor, and the MPC with the aerial model and no lateral motion (a torpedo).
+
+controller_node:
+  ros__parameters:
+    use_sim_time: true
+    # What tools/auv_cmd.py gets out of the Tethys: forward only (it steers and dives only while it
+    # moves), about 0.2 rad/s of yaw at 1-2 m/s, and no lateral motion
+    robot_limits:
+      max_linear_vel: 1.5
+      min_linear_vel: 0.0
+      max_lateral_vel: 0.0
+      max_vertical_vel: 0.3
+      max_angular_vel: 0.2
+      max_linear_acc: 0.3
+      max_linear_decel: 0.5
+      max_lateral_acc: 0.1        # must be positive; max_lateral_vel 0 keeps it from moving aside
+      max_lateral_decel: 0.1
+      max_vertical_acc: 0.2
+      max_vertical_decel: 0.3
+      max_angular_acc: 0.2
+      max_angular_decel: 0.3
+    controller_types: [mpc]
+    mpc:
+      rt_freq: 30.0
+      plugin: easynav_mpc_controller/MPCController
+      motion_model: aerial
+      horizon_steps: 30
+      dt: 0.2                     # 6 s ahead: it is slow to turn
+      time_constant: 1.0          # the autopilot's response
+      path_smoothing: 7.0         # a turning radius of about 5 m
+      safety_margin: 1.0
+      obstacle_range: 6.0
+      xy_goal_tolerance: 2.0
+      yaw_goal_tolerance: 3.14    # it cannot turn on the spot to a heading
+
+localizer_node:
+  ros__parameters:
+    use_sim_time: true
+    localizer_types: [ukf]
+    ukf:
+      rt_freq: 50.0
+      freq: 5.0
+      plugin: easynav_fusion_localizer/FusionLocalizer
+      navmap_terrain: false       # it swims: no surface to stick to
+      # The world's spherical_coordinates (tools/synthetic_sea.py), east-north-up
+      latitude_origin: 43.3848206
+      longitude_origin: -3.0097979
+      altitude_origin: 0.0
+      projection: enu
+      # odom -> base_footprint: dead reckoning, the IMU's attitude and rates and the DVL's velocity
+      # over the floor (odom drifts, z too). It starts where the launch puts the vehicle by
+      # default, (0, 0) at 3 m: elsewhere, the first fix at the surface corrects it.
+      local_filter:
+        two_d_mode: false
+        publish_tf: true
+        transform_timeout: 0.1
+        map_frame: map
+        odom_frame: odom
+        base_link_frame: base_footprint
+        world_frame: odom
+        initial_state: [0.0, 0.0, -3.0,  0.0, 0.0, 0.0,  0.0, 0.0, 0.0,
+                        0.0, 0.0, 0.0,   0.0, 0.0, 0.0]
+        imu0: /imu/data
+        imu0_config: [false, false, false,  true,  true,  true,
+                      false, false, false,  true,  true,  true,
+                      false, false, false]
+        imu0_differential: false
+        imu0_remove_gravitational_acceleration: true
+        twist0: /dvl/twist
+        twist0_config: [false, false, false,  false, false, false,
+                        true,  true,  true,   false, false, false,
+                        false, false, false]
+      # map -> odom: the same, the depth gauge's z (in map: the depth is measured from the
+      # surface, fixed in the world) and the GNSS when it has a fix (at the surface)
+      global_filter:
+        two_d_mode: false
+        publish_tf: true
+        transform_timeout: 0.1
+        map_frame: map
+        odom_frame: odom
+        base_link_frame: base_footprint
+        world_frame: map
+        initial_state: [0.0, 0.0, -3.0,  0.0, 0.0, 0.0,  0.0, 0.0, 0.0,
+                        0.0, 0.0, 0.0,   0.0, 0.0, 0.0]
+        gps0: /gps/fix
+        gps0_config: [true,  true,  false,  false, false, false,
+                      false, false, false,  false, false, false,
+                      false, false, false]
+        gps0_differential: false
+        imu0: /imu/data
+        imu0_config: [false, false, false,  true,  true,  true,
+                      false, false, false,  true,  true,  true,
+                      false, false, false]
+        imu0_differential: false
+        imu0_remove_gravitational_acceleration: true
+        twist0: /dvl/twist
+        twist0_config: [false, false, false,  false, false, false,
+                        true,  true,  true,   false, false, false,
+                        false, false, false]
+        pose0: /depth
+        pose0_config: [false, false, true,  false, false, false,
+                       false, false, false,  false, false, false,
+                       false, false, false]
+        pose0_differential: false
+
+maps_manager_node:
+  ros__parameters:
+    use_sim_time: true
+    map_types: [bonxai]
+    bonxai:
+      freq: 1.0
+      plugin: easynav_bonxai_maps_manager/BonxaiMapsManager
+      package: easynav_playground_marine_worlds
+      # the relief of the synthetic sea (synthetic_sea.py --pcd), a point every 2 m
+      bonxai_path_file: maps/synthetic_sea.pcd
+      resolution: 1.0
+
+planner_node:
+  ros__parameters:
+    use_sim_time: true
+    planner_types: [bonxai]
+    bonxai:
+      freq: 1.0
+      plugin: easynav_bonxai_planner/BonxaiPlanner
+      resolution: 2.0             # 1 km x 1 km x ~55 m: about 7 million cells
+      fill_below: lowest          # the floor is solid: no way under it
+      max_altitude: -1.0          # it stays under the surface
+      min_clearance: 2.0          # the Tethys is 2 m long
+      preferred_clearance: 5.0
+      snap_radius: 5.0
+
+sensors_node:
+  ros__parameters:
+    use_sim_time: true
+    forget_time: 0.5
+    sensors: [sonar, imu, gps]
+    perception_default_frame: odom
+    sonar:
+      topic: sonar/points
+      type: sensor_msgs/msg/PointCloud2
+    imu:
+      topic: imu/data
+      type: sensor_msgs/msg/Imu
+    gps:
+      topic: gps/fix
+      type: sensor_msgs/msg/NavSatFix
+      group: gnss
+
+system_node:
+  ros__parameters:
+    robot_geometry:
+      radius: 1.2
+      inscribed_radius: 0.2
+      height: 0.3
+    use_sim_time: true
+    use_real_time: true
+    rt_freq: 50.0
+    position_tolerance: 2.0
+    height_tolerance: 1.0
+    angle_tolerance: 3.14

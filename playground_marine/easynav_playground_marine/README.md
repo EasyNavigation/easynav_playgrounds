@@ -119,7 +119,7 @@ vehicle.
 | --- | --- | --- | --- | --- |
 | IMU | `/imu/data` | `sensor_msgs/Imu` | `imu_link` | 100 Hz |
 | Magnetometer | `/imu/mag` | `sensor_msgs/MagneticField` | `imu_link` | 20 Hz, tesla, ENU |
-| Depth gauge | `/pressure`, `/depth` | `sensor_msgs/FluidPressure` (Pa), `geometry_msgs/PoseWithCovarianceStamped` (z of `base_link` in `odom`) | `pressure_link` | 10 Hz, 2 cm of noise |
+| Depth gauge | `/pressure`, `/depth` | `sensor_msgs/FluidPressure` (Pa), `geometry_msgs/PoseWithCovarianceStamped` (z of `base_link` in `map`) | `pressure_link` | 10 Hz, 2 cm of noise |
 | DVL | `/dvl/data`, `/dvl/twist`, `/dvl/velocity`, `/dvl/altitude` | `marine_acoustic_msgs/Dvl`, `TwistWithCovarianceStamped`, `TwistStamped`, `Range` | `dvl_link` | four beams 30 deg off the vertical, bottom tracking up to 100 m, 5 Hz; the twist only with the bottom in range |
 | GNSS | `/gps/fix` | `sensor_msgs/NavSatFix` | `gps_link` | on a short mast: no fix under the water (`STATUS_NO_FIX`), and 5 s after the antenna comes out |
 | Imaging sonar | `/sonar/image`, `/sonar/image_fan`, `/sonar/points` | `marine_acoustic_msgs/ProjectedSonarImage`, `Image` (mono8), `PointCloud2` | `sonar_link` (z forward, x up), `sonar_rays_link` | forward-looking multibeam like an Oculus M750d: 256 beams over 130 x 20 deg, 0.5-50 m in 0.1 m bins, 10 Hz, 20 deg down |
@@ -143,6 +143,38 @@ How what Gazebo does not have is made:
   echosounder's first echo as a `Range`, and drops the lidar's points under the surface: the ray sensors do
   not see the water's surface (`visibility_flags`, it is a drawing) and would show the sea floor through it.
 
+## EasyNav with the submarine
+
+```bash
+ros2 launch easynav_playground_marine easynav_submarine_mpc.launch.yaml
+```
+
+EasyNav drives the Tethys (`params/submarine_mpc.params.yaml`, `rviz/submarine_easynav.rviz`):
+
+* **Map**: the relief of the synthetic sea as a point cloud for Bonxai
+  (`easynav_playground_marine_worlds/maps/synthetic_sea.pcd`, a point every 2 m, made by
+  `synthetic_sea.py --pcd`).
+* **Planner**: A* in 3D (`BonxaiPlanner`, 2 m cells) under the surface (`max_altitude: -1`) and over the
+  floor (`fill_below: lowest`), 2 m from the relief at least.
+* **Localization**: dead reckoning, as an AUV navigates (`FusionLocalizer`). The local filter
+  (`odom -> base_footprint`) fuses the IMU and the DVL; the global one (`map -> odom`) adds the depth gauge
+  (in `map`: the depth is measured from the surface) and the GNSS when the vehicle is at the surface. Both
+  start where the launch puts the vehicle by default, (0, 0) at 3 m. The simulation runs with
+  `odom_tf:=false`: the true pose makes no transform.
+* **Controller**: MPC with the aerial model, no lateral motion and forward only. The Tethys turns and dives
+  only while it moves: a turn asked for at a standstill (the MPC's, to face a goal behind it) is done on
+  the move by `auv_cmd.py`, at its steerage speed (0.6 m/s).
+
+Goals are under the water: put them with the **3D Goal Pose** tool of RViz (shortcut `h`), or
+
+```bash
+ros2 topic pub --once /goal_pose geometry_msgs/msg/PoseStamped "{header: {frame_id: map}, pose: {position: {x: 60.0, y: 0.0, z: -6.0}, orientation: {w: 1.0}}}"
+```
+
+Measured headless: a goal 60 m ahead and 3 m deeper is reached in 48 s, and one behind it, (-40, 30, -5),
+in 105 s, turning on the move; the estimate stays within 10 cm of the true pose. With no thrust at the
+goal the vehicle coasts on (some 30 m from 1.5 m/s): the goal is reached as it goes through.
+
 ## Driving it
 
 Command it with a `Twist` on `/cmd_vel`; its true pose is `/ground_truth/odom` (and `odom -> base_link`,
@@ -158,10 +190,8 @@ older than a second stops the engines.
 
 ## Limits
 
-* No navigation system comes with it: none of the EasyNav systems of the family targets water yet, so
-  this package has no `params/` or `maps/` of its own, unlike the Kobuki, Summit and TIAGo playgrounds.
-  What a navigation system needs from the simulation is there (the sensors above, `/tf`, `/clock`, a
-  world with a solid floor).
+* EasyNav drives the submarine only (see above). The boat has its sensors, but no EasyNav configuration
+  yet.
 * `marine_acoustic_msgs/Dvl` cannot be built from Python as generated on Rolling and Lyrical (its field
   `range` hides the builtin in `__init__`); `tools/marine_sensor_node.py` patches its `__init__`
   (`fix_dvl_init`) before using it. A Python node of your own that reads `/dvl/data` needs the same.
@@ -175,7 +205,7 @@ older than a second stops the engines.
 | --- | --- | --- |
 | `easynav_playground_marine_description` | the WAM-V and Tethys models | nothing |
 | `easynav_playground_marine_worlds` | the sea, the vehicle and its sensors in it, the bridge, the autopilots and RViz | Gazebo, `ros_gz`, ROS 2 (`rclpy`, `tf2_ros`, `sensor_msgs_py`, `marine_acoustic_msgs`), RViz (`rviz_imu_plugin`), numpy |
-| `easynav_playground_marine` (this) | the launch | the other two |
+| `easynav_playground_marine` (this) | the launches, EasyNav's parameters and RViz configuration for the submarine | the other two, EasyNav (`easynav_system`, the Bonxai maps manager and planner, the fusion localizer, the MPC controller), `navmap_rviz_plugin` |
 
 ## Licenses
 

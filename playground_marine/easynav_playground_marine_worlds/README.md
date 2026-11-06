@@ -15,12 +15,13 @@ ros2 launch easynav_playground_marine_worlds marine_sim.launch.py robot:=submari
 ```
 
 Arguments: `robot` (`boat`, `submarine`), `radius`, `altitude` (the submarine's depth), `spawn_x`, `spawn_y`,
-`gui`, `rviz`, `gpu`, and `waves`, `wave_visual`, `wave_height`, `wave_period`, `wave_direction` (see the README of
+`gui`, `rviz`, `odom_tf` (false: a localizer publishes `map -> odom -> base_footprint`), `gpu`, and `waves`, `wave_visual`, `wave_height`, `wave_period`, `wave_direction` (see the README of
 `easynav_playground_marine`).
 
 | Part | What it does |
 | --- | --- |
-| `tools/synthetic_sea.py` | The synthetic sea: relief (`height()`), colours by depth, the floor for Gazebo (STL for the collision, OBJ with a PNG texture for the visual) and the water (with waves: a mesh, finer near the origin, and the visual with the `ShaderParam` plugin). It also runs on its own: `synthetic_sea.py --out DIR [--radius 500]` |
+| `tools/synthetic_sea.py` | The synthetic sea: relief (`height()`), colours by depth, the floor for Gazebo (STL for the collision, OBJ with a PNG texture for the visual) and the water (with waves: a mesh, finer near the origin, and the visual with the `ShaderParam` plugin). It also runs on its own: `synthetic_sea.py --out DIR [--radius 500]`, and `--pcd FILE` writes the relief as a point cloud |
+| `maps/synthetic_sea.pcd` | The relief as Bonxai's map (`synthetic_sea.py --pcd maps/synthetic_sea.pcd`, a point every 2 m; a test checks it is up to date) |
 | `worlds/marine.world.in` | The world template: `@TERRAIN_DIR@` (the floor), `@WATER@` (surface and buoyancy) |
 | `launch/marine_sim.launch.py` | Writes the sea, puts the vehicle in the world, starts Gazebo, the bridge and the autopilot |
 | `launch/world.launch.yaml` | Gazebo server (and client) with a world file |

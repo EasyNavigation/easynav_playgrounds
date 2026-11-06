@@ -21,7 +21,9 @@
 * Depth gauge (the submarine): Gazebo has no water pressure sensor. From the vehicle's pose
   (/ground_truth/odom) and the gauge's place (tools/marine_sensors.py), the depth with noise, as
   /pressure (sensor_msgs/FluidPressure, Pa: the atmosphere plus rho g depth) and /depth
-  (geometry_msgs/PoseWithCovarianceStamped in the odom frame, only z is known).
+  (geometry_msgs/PoseWithCovarianceStamped in the map frame, only z is known: the depth is measured
+  from the surface, fixed in the world, and a localizer that took it in odom, its own drifting
+  frame, would turn it with its own map -> odom and learn nothing of its z from it).
 * DVL (the submarine): /dvl/data (marine_acoustic_msgs/Dvl, from Gazebo) -> /dvl/twist
   (geometry_msgs/TwistWithCovarianceStamped in the DVL's frame, only while it has the bottom; the
   same as /dvl/velocity, a TwistStamped, which RViz can draw) and /dvl/altitude (sensor_msgs/Range:
@@ -277,7 +279,7 @@ def main(argv=None):
             p.variance = (RHO * G * DEPTH_STDDEV) ** 2
             pressure_pub.publish(p)
             m = PoseWithCovarianceStamped()
-            m.header.stamp, m.header.frame_id = stamp, 'odom'
+            m.header.stamp, m.header.frame_id = stamp, 'map'
             m.pose.pose.position.z = -d - gauge.pose[2]      # base_link's z from the gauge's
             m.pose.pose.orientation.w = 1.0
             cov = np.diag([UNKNOWN, UNKNOWN, DEPTH_STDDEV ** 2, UNKNOWN, UNKNOWN, UNKNOWN])

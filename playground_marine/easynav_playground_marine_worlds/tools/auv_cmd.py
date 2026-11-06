@@ -35,6 +35,10 @@ MAX_FIN = 0.26                 # rad: the limit of the fin joints of the model
 MAX_THRUST = 60.0              # N
 DRAG = 6.2282                  # N / (m/s)^2: xUabsU of its Hydrodynamics plugin
 MIN_SPEED = 0.4                # m/s: below it the fins do nothing, and the dive is not asked for
+# m/s: asked to turn or to change depth slower than this, it moves at this speed, as a torpedo's
+# autopilot does: it has no way to do either on the spot (a controller that asks for a turn in
+# place gets it on the move)
+STEERAGE_SPEED = 0.6
 
 
 def clamp(value, low, high):
@@ -45,20 +49,26 @@ class AuvController:
     """Thrust, rudder and elevator for a commanded (speed, yaw rate, vertical speed)."""
 
     def __init__(self, speed_gain=20.0, yaw_gain=0.8, yaw_feedforward=0.35, pitch_gain=2.0,
-                 pitch_rate_gain=1.5, max_pitch=math.radians(25.0)):
+                 pitch_rate_gain=1.5, max_pitch=math.radians(25.0),
+                 steerage_speed=STEERAGE_SPEED):
         self.speed_gain, self.yaw_gain, self.yaw_feedforward = speed_gain, yaw_gain, yaw_feedforward
+        self.steerage_speed = steerage_speed
         self.pitch_gain, self.pitch_rate_gain, self.max_pitch = pitch_gain, pitch_rate_gain, max_pitch
 
     def step(self, command, state):
         """(thrust, rudder, elevator) from command (u, r, vz) and state (u, r, pitch, q, vz).
 
         u: speed along the axis, r: yaw rate, pitch (positive nose down, as the model's), q: pitch
-        rate, vz: vertical speed, up.
+        rate, vz: vertical speed, up. A turn or a change of depth asked for below the steerage
+        speed is done at it, forward.
         """
         u_cmd, r_cmd, vz_cmd = command
         u, r, pitch, q, vz = state
         if not all(math.isfinite(v) for v in (u_cmd, r_cmd, vz_cmd, u, r, pitch, q, vz)):
             return 0.0, 0.0, 0.0      # a NaN would come out of the clamps as full thrust: coast
+        steering = abs(r_cmd) > 1e-3 or abs(vz_cmd) > 1e-3
+        if steering and u_cmd < self.steerage_speed:
+            u_cmd = self.steerage_speed
         thrust = DRAG * u_cmd * abs(u_cmd) + self.speed_gain * (u_cmd - u)
         thrust = clamp(thrust, -MAX_THRUST, MAX_THRUST)
         speed = max(abs(u), MIN_SPEED)

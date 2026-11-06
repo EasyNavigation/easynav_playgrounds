@@ -370,3 +370,19 @@ def test_the_vehicle_snippets_take_the_sensors(tmp_path):
         assert '<experimental:params>' not in head            # not in the comment
         include = body[body.find('<include>'):body.find('</include>')]
         assert '<experimental:params>' in include
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_with_odom_tf_false_the_true_pose_makes_no_transform(robot, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch)
+    assert '--no-odom' not in [c for c in processes(actions, ctx) if 'odom_to_tf.py' in c][0]
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch, odom_tf='false')
+    cmd = [c for c in processes(actions, ctx) if 'odom_to_tf.py' in c][0]
+    assert '--no-odom' in cmd and '--frame=imu_link:' in cmd       # the sensors' frames stay
+
+
+def test_odom_tf_is_true_or_false(tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', odom_tf='no')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    with pytest.raises(RuntimeError, match='odom_tf must be true or false'):
+        m.setup(ctx)

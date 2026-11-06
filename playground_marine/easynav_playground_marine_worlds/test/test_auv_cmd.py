@@ -127,3 +127,27 @@ def test_a_command_or_a_state_that_is_not_a_number_coasts_instead_of_full_thrust
     assert c.step((1.0, 0.0, nan), at(u=1.0)) == (0.0, 0.0, 0.0)
     assert c.step((1.0, 0.0, 0.0), at(pitch=inf)) == (0.0, 0.0, 0.0)
     assert c.step((1.0, 0.0, 0.0), at(u=1.0)) != (0.0, 0.0, 0.0)
+
+
+def test_a_turn_on_the_spot_is_done_on_the_move():
+    a = autopilot()
+    c = a.AuvController()
+    thrust, rudder, _ = c.step((0.0, 0.2, 0.0), at(u=0.0))
+    assert thrust > 0.0 and rudder > 0.0                       # it moves forward, turning left
+    assert c.step((0.0, 0.0, -0.3), at(u=0.0))[0] > 0.0        # to dive, too
+
+
+def test_without_a_turn_nor_a_dive_a_stop_is_a_stop():
+    a = autopilot()
+    c = a.AuvController()
+    assert c.step((0.0, 0.0, 0.0), at(u=0.0))[0] == pytest.approx(0.0)
+    assert c.step((0.0, 0.0, 0.0), at(u=1.0))[0] < 0.0         # it brakes
+
+
+def test_faster_than_the_steerage_speed_the_command_stays():
+    a = autopilot()
+    c = a.AuvController()
+    fast = c.step((1.5, 0.1, 0.0), at(u=1.5))[0]
+    assert fast == pytest.approx(c.step((1.5, 0.0, 0.0), at(u=1.5))[0])
+    slow = a.AuvController(steerage_speed=0.0)
+    assert slow.step((0.0, 0.2, 0.0), at(u=0.0))[0] == pytest.approx(0.0)  # 0: off

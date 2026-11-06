@@ -166,6 +166,10 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz', default_value='true',
                               description='RViz with the sensors of the vehicle'),
         DeclareLaunchArgument(
+            'odom_tf', default_value='true',
+            description='map -> odom and odom -> base_footprint from the true pose; false: a '
+                        'localizer publishes them'),
+        DeclareLaunchArgument(
             'waves', default_value='false',
             description='true: the vehicle moves as in a sea, and the water is drawn with the waves'),
         DeclareLaunchArgument(
@@ -217,8 +221,9 @@ def setup(context):
         if not 2.0 <= period <= 15.0:
             raise RuntimeError('wave_period must be between 2 and 15 s, not %g' % period)
 
-    if arg('rviz') not in ('true', 'false'):
-        raise RuntimeError("rviz must be true or false, not '%s'" % arg('rviz'))
+    for name in ('rviz', 'odom_tf'):
+        if arg(name) not in ('true', 'false'):
+            raise RuntimeError("%s must be true or false, not '%s'" % (name, arg(name)))
 
     gpu = arg('gpu')
     egl_nvidia = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json'
@@ -300,8 +305,9 @@ def setup(context):
                   name='%s_bridge' % robot, output='screen', parameters=[{'config_file': bridged}])
     frames = ['--frame=%s:%s' % (f[0], ','.join('%.6f' % v for v in f[1:]))
               for f in table.static_frames(robot)]
-    odom_to_tf = ExecuteProcess(cmd=[os.path.join(tools, 'odom_to_tf.py'), '--sim-time'] + frames +
-                                truth, name='odom_to_tf', output='screen')
+    no_odom = [] if arg('odom_tf') == 'true' else ['--no-odom']
+    odom_to_tf = ExecuteProcess(cmd=[os.path.join(tools, 'odom_to_tf.py'), '--sim-time'] + no_odom +
+                                frames + truth, name='odom_to_tf', output='screen')
     sensors = [ExecuteProcess(
         cmd=[os.path.join(tools, 'marine_sensor_node.py'), '--vehicle', robot, '--sim-time'],
         name='marine_sensors', output='screen')]
