@@ -38,12 +38,13 @@ launch:
     output: screen
 # "gz sim -g" starts the GUI client through "sh -c" and does not pass signals on, so the
 # window would outlive the launch. bash runs it in its own process group (set -m): on
-# SIGINT it sends SIGTERM to the whole group and waits until the client has closed (it
-# takes a few seconds); if the launch escalates to SIGTERM, the group is killed.
+# SIGINT it sends SIGTERM to the whole group once (Ctrl+C delivers a second SIGINT, which
+# is ignored), waits until the client has closed (it takes a few seconds) and exits with
+# 0; if the launch escalates to SIGTERM, the group is killed.
 - executable:
     if: $(var gui)
     name: gz_gui
-    cmd: bash -c 'set -m; gz sim -g & p=$!; trap "kill -TERM -- -$p; wait $p; while kill -0 -- -$p 2>/dev/null; do sleep 0.2; done" INT; trap "kill -KILL -- -$p" TERM; wait $p'
+    cmd: bash -c 'set -m; gz sim -g & p=$!; trap "trap true INT; kill -TERM -- -$p; wait $p; while kill -0 -- -$p 2>/dev/null; do sleep 0.2; done; exit 0" INT; trap "kill -KILL -- -$p" TERM; wait $p'
     sigterm_timeout: 10.0
     output: screen
 
