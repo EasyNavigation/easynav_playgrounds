@@ -35,9 +35,10 @@ from collections import namedtuple
 WATER_VISIBILITY = 0x00000002
 SEES_NO_WATER = 0xFFFFFFFF & ~WATER_VISIBILITY
 
-# The Tethys model has its propeller at +x, but tools/auv_cmd.py drives it along +x (stern first):
-# its forward-looking sensors look where it goes. -1.0 if the autopilot is made to go nose first.
-TETHYS_FORWARD = 1.0
+# The yaw of each vehicle's Gazebo model in its ROS base_link (x to the bow, REP 103). The Tethys
+# model has its propeller and fins at +x: it is turned half a turn, and tools/ground_truth.py turns its
+# odometry back. The poses of the table are in base_link; sdf() puts them in the model's link.
+MODEL_YAW = {'boat': 0.0, 'submarine': math.pi}
 
 # name, frame (frame_id of its messages), pose (x, y, z, roll, pitch, yaw in base_link), sdf (the
 # body of its <sensor>, without pose and frame; None: not a Gazebo sensor), bridge
@@ -195,11 +196,9 @@ SENSORS = {
         Sensor('dvl', 'dvl_link', (0.0, 0.0, -0.13, 0.0, 0.0, 0.0), dvl(),
                [('/sensors/dvl', '/dvl/data', 'marine_acoustic_msgs/msg/Dvl',
                  'gz.msgs.DVLVelocityTracking')]),
-        # at the end it goes towards, 20 degrees down (its fan reaches the floor 18 m under the
-        # vehicle from 36 m on, as an obstacle-avoidance sonar is set)
-        Sensor('sonar', 'sonar_rays_link',
-               (TETHYS_FORWARD * 1.0, 0.0, 0.0, 0.0, math.radians(20.0),
-                0.0 if TETHYS_FORWARD > 0 else math.pi),
+        # at the bow, 20 degrees down (its fan reaches the floor 18 m under the vehicle from 36 m on,
+        # as an obstacle-avoidance sonar is set)
+        Sensor('sonar', 'sonar_rays_link', (1.0, 0.0, 0.0, 0.0, math.radians(20.0), 0.0),
                sonar_rays(),
                [(_points('/sensors/sonar')[0], '/sonar/rays') + _points('')[1:]]),
     ),
@@ -229,6 +228,24 @@ def _multiply(a, b):
 OPTICAL = _quaternion(-math.pi / 2, 0.0, -math.pi / 2)
 
 
+def _rpy(q):
+    x, y, z, w = q
+    roll = math.atan2(2 * (w * x + y * z), 1 - 2 * (x * x + y * y))
+    pitch = math.asin(max(-1.0, min(1.0, 2 * (w * y - z * x))))
+    yaw = math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z))
+    return roll, pitch, yaw
+
+
+def model_pose(robot, pose):
+    """A pose in base_link (x, y, z, roll, pitch, yaw) in the link of the vehicle's model."""
+    m = MODEL_YAW[robot]
+    x, y, z = pose[:3]
+    c, s = math.cos(m), math.sin(m)
+    # base_link in the model: turned by -m
+    q = _multiply(_quaternion(0.0, 0.0, -m), _quaternion(*pose[3:]))
+    return (c * x + s * y, -s * x + c * y, z) + _rpy(q)
+
+
 def sensors(robot):
     if robot not in SENSORS:
         raise ValueError("no sensors for '%s'" % robot)
@@ -245,7 +262,7 @@ def sdf(robot):
     for s in sensors(robot):
         if s.sdf is None:
             continue
-        x, y, z, roll, pitch, yaw = s.pose
+        x, y, z, roll, pitch, yaw = model_pose(robot, s.pose)
         body = s.sdf.replace(
             '<always_on>', '<pose>%.4f %.4f %.4f %.6f %.6f %.6f</pose><gz_frame_id>%s</gz_frame_id>'
             '<always_on>' % (x, y, z, roll, pitch, yaw, s.frame), 1)

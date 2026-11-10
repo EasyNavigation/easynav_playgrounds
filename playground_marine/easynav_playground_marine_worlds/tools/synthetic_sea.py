@@ -27,6 +27,10 @@ writes in DIR:
   world.sdf                                            the Gazebo world: the floor and the water
 and prints DIR as its last line. It needs only numpy (and, for the default template, the package's
 share directory); no other package.
+
+    synthetic_sea.py --pcd FILE [--radius 500] [--pcd-spacing 2]
+
+writes the relief (floor and land) as a point cloud, the map of the Bonxai maps manager.
 """
 
 import argparse
@@ -84,6 +88,39 @@ def height(x, y):
     rx, rh, rs = RIDGE
     z = z + rh * np.exp(-((x - rx) ** 2) / (2.0 * rs * rs))
     return z + 0.3 * np.sin(x / 9.0 + 0.3 * y / 9.0)     # sand ripples
+
+
+def floor_points(half, spacing=2.0):
+    """(N, 3) points of the relief (the floor, and the land over the water) on a square grid of
+    `spacing` m over [-half, half]^2. Where the relief is steep, points are added down each column
+    to the lowest of its neighbours, so that a slope is a wall without gaps."""
+    n = int(round(2.0 * half / spacing)) + 1
+    axis = np.linspace(-half, half, n)
+    gx, gy = np.meshgrid(axis, axis)
+    z = height(gx, gy)
+    padded = np.pad(z, 1, mode='edge')
+    lowest = np.minimum.reduce([padded[1:-1, :-2], padded[1:-1, 2:], padded[:-2, 1:-1],
+                                padded[2:, 1:-1], z])
+    points = [np.stack([gx.ravel(), gy.ravel(), z.ravel()], axis=1)]
+    drop = z - lowest
+    for k in range(1, int(np.ceil(drop.max() / spacing)) + 1 if drop.size else 0):
+        step = drop > k * spacing
+        if not step.any():
+            break
+        points.append(np.stack([gx[step], gy[step], z[step] - k * spacing], axis=1))
+    return np.concatenate(points).astype(np.float32)
+
+
+def write_pcd(path, points):
+    """A binary PCD of (N, 3) float points, as PCL (and Bonxai) read it."""
+    points = np.ascontiguousarray(points, dtype=np.float32)
+    header = ('# .PCD v0.7 - Point Cloud Data file format\nVERSION 0.7\nFIELDS x y z\n'
+              'SIZE 4 4 4\nTYPE F F F\nCOUNT 1 1 1\nWIDTH %d\nHEIGHT 1\n'
+              'VIEWPOINT 0 0 0 1 0 0 0\nPOINTS %d\nDATA binary\n' % (len(points), len(points)))
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    with open(path, 'wb') as f:
+        f.write(header.encode('ascii'))
+        f.write(points.tobytes())
 
 
 def colours(z):
@@ -327,7 +364,9 @@ def make(out, radius=500.0, terrain_resolution=4.0, template=None, shader=None):
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('--out', required=True, help='directory to write the world in')
+    p.add_argument('--out', help='directory to write the world in')
+    p.add_argument('--pcd', help='write the relief as a point cloud (the Bonxai map) to this file')
+    p.add_argument('--pcd-spacing', type=float, default=2.0, help='m between its points (2)')
     p.add_argument('--radius', type=float, default=500.0, help='half-side of the square, m (500)')
     p.add_argument('--terrain-resolution', type=float, default=4.0,
                    help="m between vertices of Gazebo's floor (4)")
@@ -335,6 +374,16 @@ def main(argv=None):
     a = p.parse_args(argv)
     if a.radius < 100.0:
         p.error('--radius must be at least 100 m: the beach and the islet are within 400 m')
+    if not a.out and not a.pcd:
+        p.error('nothing to write: give --out and/or --pcd')
+    if a.pcd:
+        if a.pcd_spacing <= 0.0:
+            p.error('--pcd-spacing must be positive')
+        points = floor_points(a.radius, a.pcd_spacing)
+        write_pcd(a.pcd, points)
+        print('relief: %d points every %g m in %s' % (len(points), a.pcd_spacing, a.pcd))
+        if not a.out:
+            return 0
     out = os.path.abspath(os.path.expanduser(a.out))
     half = make(out, a.radius, a.terrain_resolution, a.template)
     print('synthetic sea: %g m x %g m, floor %.1f m at the origin, islet %.1f m over the water'

@@ -219,6 +219,14 @@ def test_the_vehicle_goes_into_the_world_and_the_water_acts_on_it(tmp_path):
     assert '@' not in text.split('<world')[1].replace('@MODELS@', '')
 
 
+@pytest.mark.parametrize('robot, yaw', [('boat', 0.0), ('submarine', math.pi)])
+def test_the_model_is_put_in_the_world_turned_as_its_base_link(robot, yaw, tmp_path, monkeypatch):
+    launched(robot, tmp_path, monkeypatch)
+    text = (tmp_path / ('world_%s.sdf' % robot)).read_text()
+    pose = re.search(r'<include>\s*<name>%s</name>\s*<pose>([^<]+)</pose>' % robot_model(robot), text)
+    assert pose and float(pose.group(1).split()[5]) == pytest.approx(yaw, abs=1e-4)
+
+
 def test_a_world_without_water_is_refused(tmp_path):
     m = module()
     world = tmp_path / 'w.sdf'
@@ -254,8 +262,15 @@ def test_the_true_pose_is_ground_truth_and_the_tools_read_it_there(robot, tmp_pa
     m, ctx, actions = launched(robot, tmp_path, monkeypatch, waves='true')
     bridge = bridge_of(tmp_path, robot)
     block = [b for b in bridge.split('- ros_topic_name') if 'nav_msgs/msg/Odometry' in b]
-    assert len(block) == 1 and '"/ground_truth/odom"' in block[0]
     assert '"/odom"' not in bridge
+    turned = [c for c in processes(actions, ctx) if 'ground_truth.py' in c]
+    if robot == 'boat':                      # its model looks where base_link does: straight through
+        assert len(block) == 1 and '"/ground_truth/odom"' in block[0] and not turned
+    else:                                    # the Tethys model is turned: ground_truth.py turns it back
+        assert len(block) == 1 and '"/tethys/model_odom"' in block[0]
+        assert len(turned) == 1 and '-r odom:=/ground_truth/odom' in turned[0]
+        assert '-r model_odom:=/tethys/model_odom' in turned[0]
+        assert '--yaw %r' % math.pi in turned[0]
     for tool_ in ('odom_to_tf.py', 'wave_node.py', 'boat_cmd.py' if robot == 'boat' else 'auv_cmd.py'):
         cmd = [c for c in processes(actions, ctx) if tool_ in c]
         assert len(cmd) == 1 and '-r odom:=/ground_truth/odom' in cmd[0], tool_
@@ -370,3 +385,19 @@ def test_the_vehicle_snippets_take_the_sensors(tmp_path):
         assert '<experimental:params>' not in head            # not in the comment
         include = body[body.find('<include>'):body.find('</include>')]
         assert '<experimental:params>' in include
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_with_odom_tf_false_the_true_pose_makes_no_transform(robot, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch)
+    assert '--no-odom' not in [c for c in processes(actions, ctx) if 'odom_to_tf.py' in c][0]
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch, odom_tf='false')
+    cmd = [c for c in processes(actions, ctx) if 'odom_to_tf.py' in c][0]
+    assert '--no-odom' in cmd and '--frame=imu_link:' in cmd       # the sensors' frames stay
+
+
+def test_odom_tf_is_true_or_false(tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', odom_tf='no')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    with pytest.raises(RuntimeError, match='odom_tf must be true or false'):
+        m.setup(ctx)
