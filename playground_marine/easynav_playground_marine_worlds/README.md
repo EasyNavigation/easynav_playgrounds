@@ -5,8 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # easynav_playground_marine_worlds
 
-The marine simulation: a Gazebo world with water, a boat or a submarine in it, the bridge to ROS and their
-autopilots. It needs Gazebo Harmonic or newer (`ros_gz_sim`, `ros_gz_bridge`) and numpy, nothing else.
+The marine simulation: a Gazebo world with water, a boat or a submarine in it with its sensors, the bridge
+to ROS, their autopilots and RViz. It needs Gazebo Harmonic or newer (`ros_gz_sim`, `ros_gz_bridge`), RViz
+and numpy, nothing else.
 
 ```bash
 ros2 launch easynav_playground_marine_worlds marine_sim.launch.py robot:=boat
@@ -14,7 +15,7 @@ ros2 launch easynav_playground_marine_worlds marine_sim.launch.py robot:=submari
 ```
 
 Arguments: `robot` (`boat`, `submarine`), `radius`, `altitude` (the submarine's depth), `spawn_x`, `spawn_y`,
-`gui`, `gpu`, and `waves`, `wave_visual`, `wave_height`, `wave_period`, `wave_direction` (see the README of
+`gui`, `rviz`, `gpu`, and `waves`, `wave_visual`, `wave_height`, `wave_period`, `wave_direction` (see the README of
 `easynav_playground_marine`).
 
 | Part | What it does |
@@ -25,7 +26,11 @@ Arguments: `robot` (`boat`, `submarine`), `radius`, `altitude` (the submarine's 
 | `launch/world.launch.yaml` | Gazebo server (and client) with a world file |
 | `tools/boat_cmd.py`, `tools/auv_cmd.py` | The autopilots: a `Twist` on `/cmd_vel` in, thrust (and fins) out |
 | `tools/wave_node.py` | `waves:=true`: the force and torque that a wave field adds to the vehicle (`/waves/wrench`, bridged to Gazebo's `ApplyLinkWrench`) and the parameters of the shader that draws the same waves (`Waves.shader_params()`) |
-| `tools/odom_to_tf.py` | `/odom` from Gazebo to `odom -> base_footprint -> base_link` and `map -> odom` |
+| `tools/odom_to_tf.py` | The true pose (`/ground_truth/odom`) to `odom -> base_footprint -> base_link`, `map -> odom`, and `base_link -> <sensor frame>` (`--frame`) |
+| `tools/marine_sensors.py` | The table of the sensors of each vehicle: from it the SDF (`sdf()`), the bridge (`bridge_entries()`) and the static transforms (`static_frames()`) |
+| `tools/marine_sensor_node.py` | What Gazebo does not give as such: the GNSS without a fix under the water, the depth gauge, the echosounder's `Range`, the DVL's twist and altitude, the lidar without what is under the water |
+| `tools/sonar_node.py` | The imaging sonar: echoes from a fan of rays (`ProjectedSonarImage`, a fan image and the strong echoes as points) |
+| `rviz/boat.rviz`, `rviz/submarine.rviz` | RViz with every sensor of the vehicle |
 
 What it writes (`~/.ros/easynav_playground_marine/`): `synthetic_r<radius>/` (floor and world),
 `world_<robot>.sdf` (the world with the vehicle) and the bridge files.
@@ -33,4 +38,5 @@ What it writes (`~/.ros/easynav_playground_marine/`): `synthetic_r<radius>/` (fl
 ## Tests
 
 `colcon test --packages-select easynav_playground_marine_worlds`, or `pytest test/` with the workspace
-sourced: the autopilots, the synthetic sea and the decisions of the launch file (no process starts).
+sourced: the autopilots, the synthetic sea, the sensors (the table, the sensor node and the sonar) and the
+decisions of the launch file (no process starts).

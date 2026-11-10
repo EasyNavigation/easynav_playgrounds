@@ -69,6 +69,9 @@ WATER_DEEP = '0.02 0.12 0.25 1.0'
 
 WATER_DENSITY = 1000.0    # kg/m3: what the gz-sim marine demos (and their AUV) are balanced for
 AIR_DENSITY = 1.2
+# visibility_flags of the water's visuals: the ray sensors (lidars, echosounder, sonar; their
+# visibility_mask in tools/marine_sensors.py) do not see the surface, which is a drawing
+WATER_VISIBILITY = 0x00000002
 
 
 def height(x, y):
@@ -235,6 +238,7 @@ def shader_visual(shader):
     return f"""
                 <visual name="waves">
                     <cast_shadows>false</cast_shadows>
+                    <visibility_flags>{WATER_VISIBILITY}</visibility_flags>
                     <geometry><mesh><uri>{shader['mesh']}</uri></mesh></geometry>
                     <plugin filename="gz-sim-shader-param-system" name="gz::sim::systems::ShaderParam">
                         <shader language="glsl">
@@ -256,6 +260,7 @@ def water_sdf(half, shader=None):
     above = shader_visual(shader) if shader else f"""
                 <visual name="water">
                     <cast_shadows>false</cast_shadows>
+                    <visibility_flags>{WATER_VISIBILITY}</visibility_flags>
                     <geometry><plane><normal>0 0 1</normal>
                         <size>{size:.6g} {size:.6g}</size></plane></geometry>
                     <material>
@@ -273,6 +278,7 @@ def water_sdf(half, shader=None):
                 <!-- the same seen from below (a plane is drawn on one side only) -->
                 <visual name="water_from_below">
                     <cast_shadows>false</cast_shadows>
+                    <visibility_flags>{WATER_VISIBILITY}</visibility_flags>
                     <geometry><plane><normal>0 0 -1</normal>
                         <size>{size:.6g} {size:.6g}</size></plane></geometry>
                     <material>

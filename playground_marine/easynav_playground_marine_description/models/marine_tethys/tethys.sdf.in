@@ -6,7 +6,7 @@
        /tethys/thrust    -> /model/tethys/joint/propeller_joint/cmd_thrust   (N, positive is forward)
        /tethys/rudder    -> /model/tethys/joint/vertical_fins_joint/0/cmd_pos      (rad)
        /tethys/elevator  -> /model/tethys/joint/horizontal_fins_joint/0/cmd_pos    (rad, positive: nose down)
-     @X@ @Y@ @Z@ @YAW@ are filled in when the world is made. -->
+     @X@ @Y@ @Z@ @YAW@ (and the sensors, at the end) are filled in when the world is made. -->
         <include>
       <name>tethys</name>
       <pose>@X@ @Y@ @Z@ 0 0 @YAW@</pose>
@@ -109,4 +109,7 @@
         <robot_base_frame>base_footprint</robot_base_frame>
         <odom_publish_frequency>50</odom_publish_frequency>
       </plugin>
+
+      <!-- the sensors (tools/marine_sensors.py of the worlds package) -->
+      @SENSORS@
     </include>

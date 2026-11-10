@@ -227,3 +227,146 @@ def test_a_world_without_water_is_refused(tmp_path):
     with pytest.raises(RuntimeError, match='no water'):
         m.vehicle_world(str(world), str(tmp_path / 'o.sdf'),
                         os.path.join(models, 'marine_tethys', 'tethys.sdf.in'), 0, 0, -3, 'tethys')
+
+
+# --- the sensors, the true pose and RViz
+
+def sensors_table():
+    spec = importlib.util.spec_from_file_location(
+        'marine_sensors_for_launch', os.path.join(ROOT, 'tools', 'marine_sensors.py'))
+    table = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(table)
+    return table
+
+
+def bridge_of(tmp_path, robot):
+    return (tmp_path / ('%s_bridge.yaml' % robot_model(robot).replace('wamv', 'boat'))).read_text()
+
+
+def launched(robot, tmp_path, monkeypatch, **given):
+    m, ctx = context(robot=robot, gpu='none', radius='200', **given)
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    return m, ctx, m.setup(ctx)
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_the_true_pose_is_ground_truth_and_the_tools_read_it_there(robot, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch, waves='true')
+    bridge = bridge_of(tmp_path, robot)
+    block = [b for b in bridge.split('- ros_topic_name') if 'nav_msgs/msg/Odometry' in b]
+    assert len(block) == 1 and '"/ground_truth/odom"' in block[0]
+    assert '"/odom"' not in bridge
+    for tool_ in ('odom_to_tf.py', 'wave_node.py', 'boat_cmd.py' if robot == 'boat' else 'auv_cmd.py'):
+        cmd = [c for c in processes(actions, ctx) if tool_ in c]
+        assert len(cmd) == 1 and '-r odom:=/ground_truth/odom' in cmd[0], tool_
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_every_sensor_is_in_the_world_and_the_bridge(robot, tmp_path, monkeypatch):
+    table = sensors_table()
+    launched(robot, tmp_path, monkeypatch)
+    world = (tmp_path / ('world_%s.sdf' % robot)).read_text()
+    vehicle = world[world.rfind('<include>'):]
+    assert '<experimental:params>' in vehicle and '@SENSORS@' not in world
+    for s in table.sensors(robot):
+        if s.sdf is not None:
+            assert '<gz_frame_id>%s</gz_frame_id>' % s.frame in vehicle, s.name
+    bridge = bridge_of(tmp_path, robot)
+    for gz, ros, ros_type, gz_type, _ in table.bridge_entries(robot):
+        block = [b for b in bridge.split('- ros_topic_name') if '"%s"' % gz in b]
+        assert len(block) == 1 and '"%s"' % ros in block[0] and 'GZ_TO_ROS' in block[0]
+        assert ros_type in block[0] and gz_type in block[0]
+
+
+def test_the_world_has_what_the_sensors_need(tmp_path, monkeypatch):
+    launched('submarine', tmp_path, monkeypatch)
+    world = world_of(tmp_path)
+    assert 'gz-sim-dvl-system' in world and 'gz-sim-navsat-system' in world
+    assert 'gz-sim-imu-system' in world and 'gz-sim-sensors-system' in world
+    assert '<use_units_gauss>false</use_units_gauss>' in world        # tesla, as ROS wants it
+    assert '<use_earth_frame_ned>false</use_earth_frame_ned>' in world
+    assert '<spherical_coordinates>' in world                         # the GNSS needs a place
+    flag = '<visibility_flags>%d</visibility_flags>' % sensors_table().WATER_VISIBILITY
+    assert world.count(flag) == 2                                     # the surface, both sides
+
+
+@pytest.mark.parametrize('robot, sonar', [('boat', False), ('submarine', True)])
+def test_the_sensor_nodes_start_with_the_vehicle(robot, sonar, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch)
+    cmds = processes(actions, ctx)
+    node = [c for c in cmds if 'marine_sensor_node.py' in c]
+    assert len(node) == 1 and '--vehicle %s' % robot in node[0] and '--sim-time' in node[0]
+    assert any('sonar_node.py' in c for c in cmds) == sonar
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_odom_to_tf_publishes_the_frames_of_the_sensors(robot, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch)
+    cmd = [c for c in processes(actions, ctx) if 'odom_to_tf.py' in c][0]
+    for f in sensors_table().static_frames(robot):
+        assert '--frame=%s:' % f[0] in cmd
+
+
+def rviz_nodes(actions, ctx):
+    """The arguments of each RViz node (a Node's command needs a ROS launch context)."""
+    out = []
+    for a in actions:
+        if isinstance(a, Node) and str(a.node_executable) == 'rviz2':
+            words = [w if isinstance(w, str) else ''.join(s.perform(ctx) for s in w)
+                     for w in a._Node__arguments]
+            out.append(' '.join(words))
+    return out
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_rviz_opens_with_the_configuration_of_the_vehicle(robot, tmp_path, monkeypatch):
+    m, ctx, actions = launched(robot, tmp_path, monkeypatch)
+    rviz = rviz_nodes(actions, ctx)
+    assert len(rviz) == 1
+    config = re.search(r'-d (\S+\.rviz)', rviz[0]).group(1)
+    assert config.endswith('%s.rviz' % robot)
+    m2, ctx2, actions2 = launched(robot, tmp_path, monkeypatch, rviz='false')
+    assert rviz_nodes(actions2, ctx2) == []
+
+
+def test_rviz_is_true_or_false(tmp_path, monkeypatch):
+    m, ctx = context(robot='boat', gpu='none', rviz='maybe')
+    monkeypatch.setattr(m, 'OUT_DIR', str(tmp_path))
+    with pytest.raises(RuntimeError, match='rviz must be true or false'):
+        m.setup(ctx)
+
+
+@pytest.mark.parametrize('robot', ['boat', 'submarine'])
+def test_the_rviz_configuration_shows_every_sensor_of_the_vehicle(robot):
+    yaml = pytest.importorskip('yaml')
+    with open(os.path.join(ROOT, 'rviz', '%s.rviz' % robot)) as f:
+        config = yaml.safe_load(f)
+    manager = config['Visualization Manager']
+    assert manager['Global Options']['Fixed Frame'] == 'odom'
+    shown = {d['Topic']['Value'] for d in manager['Displays'] if 'Topic' in d}
+    expected = {'boat': {'/ground_truth/odom', '/imu/data', '/lidar/points', '/camera/image_raw',
+                         '/echosounder'},
+                'submarine': {'/ground_truth/odom', '/imu/data', '/sonar/image_fan',
+                              '/sonar/points', '/dvl/altitude', '/dvl/velocity', '/pressure'}}
+    assert shown == expected[robot]
+    classes = {d['Class'] for d in manager['Displays']}
+    assert 'rviz_default_plugins/TF' in classes
+
+
+def test_the_vehicle_snippets_take_the_sensors(tmp_path):
+    m = module()
+    table = sensors_table()
+    world = tmp_path / 'w.sdf'
+    world.write_text('<sdf><world name="w"><plugin filename="gz-sim-buoyancy-system" name="b">'
+                     '</plugin></world></sdf>')
+    models = os.path.join(os.path.dirname(ROOT), 'easynav_playground_marine_description', 'models')
+    for snippet, robot, name in (('marine_wamv/wamv.sdf.in', 'boat', 'wamv'),
+                                 ('marine_tethys/tethys.sdf.in', 'submarine', 'tethys')):
+        out = m.vehicle_world(str(world), str(tmp_path / ('%s.sdf' % name)),
+                              os.path.join(models, snippet), 0.0, 0.0, -1.0, name,
+                              table.sdf(robot))
+        text = open(out).read()
+        head, body = text.split('-->', 1)
+        assert '<experimental:params>' not in head            # not in the comment
+        include = body[body.find('<include>'):body.find('</include>')]
+        assert '<experimental:params>' in include
