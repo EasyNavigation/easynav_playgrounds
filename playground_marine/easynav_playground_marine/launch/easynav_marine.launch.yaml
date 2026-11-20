@@ -40,6 +40,10 @@ launch:
     default: 'true'
     description: Gazebo GUI
 - arg:
+    name: rviz
+    default: 'true'
+    description: RViz with the sensors of the vehicle
+- arg:
     name: waves
     default: 'false'
     description: 'true: the vehicle moves as in a sea, and the water is drawn with the waves'
@@ -67,6 +71,7 @@ launch:
     - {name: radius, value: $(var radius)}
     - {name: altitude, value: $(var altitude)}
     - {name: gui, value: $(var gui)}
+    - {name: rviz, value: $(var rviz)}
     - {name: waves, value: $(var waves)}
     - {name: wave_visual, value: $(var wave_visual)}
     - {name: wave_height, value: $(var wave_height)}

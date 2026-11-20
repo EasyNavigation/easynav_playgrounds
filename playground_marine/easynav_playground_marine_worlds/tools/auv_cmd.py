@@ -23,8 +23,10 @@ a ROS topic cannot have a token that starts with a number, as Gazebo's `.../vert
   angular.z  rad/s of yaw         -> rudder angle (the vertical fins)
   linear.z   m/s up               -> elevator angle (the horizontal fins), through a pitch target
 A command older than a second is no command: the thrust and the fins go to zero (the vehicle coasts).
-Measured on the model: 31 N holds 2.2 m/s, a rudder of 0.17 rad turns it at 0.22 rad/s at 1.8 m/s,
-and an elevator of +0.17 rad pitches it 40 degrees nose down.
+The odometry is that of base_link (x to the bow: tools/ground_truth.py turns the model's), and so are
+the commands: joint_commands() turns them into the model's joints, whose +x is the stern.
+Measured on the model, bow first: 30 N holds 2.2 m/s, and the rudder turns it at most at about
+0.055 rad/s at 1.7 m/s (a turning circle of some 30 m: the fins stall past 0.17 rad).
 """
 
 import argparse
@@ -35,6 +37,10 @@ MAX_FIN = 0.26                 # rad: the limit of the fin joints of the model
 MAX_THRUST = 60.0              # N
 DRAG = 6.2282                  # N / (m/s)^2: xUabsU of its Hydrodynamics plugin
 MIN_SPEED = 0.4                # m/s: below it the fins do nothing, and the dive is not asked for
+# m/s: asked to turn or to change depth slower than this, it moves at this speed, as a torpedo's
+# autopilot does: it has no way to do either on the spot (a controller that asks for a turn in
+# place gets it on the move)
+STEERAGE_SPEED = 0.6
 
 
 def clamp(value, low, high):
@@ -44,21 +50,27 @@ def clamp(value, low, high):
 class AuvController:
     """Thrust, rudder and elevator for a commanded (speed, yaw rate, vertical speed)."""
 
-    def __init__(self, speed_gain=20.0, yaw_gain=0.8, yaw_feedforward=0.35, pitch_gain=2.0,
-                 pitch_rate_gain=1.5, max_pitch=math.radians(25.0)):
+    def __init__(self, speed_gain=20.0, yaw_gain=2.0, yaw_feedforward=2.7, pitch_gain=2.0,
+                 pitch_rate_gain=1.5, max_pitch=math.radians(25.0),
+                 steerage_speed=STEERAGE_SPEED):
         self.speed_gain, self.yaw_gain, self.yaw_feedforward = speed_gain, yaw_gain, yaw_feedforward
+        self.steerage_speed = steerage_speed
         self.pitch_gain, self.pitch_rate_gain, self.max_pitch = pitch_gain, pitch_rate_gain, max_pitch
 
     def step(self, command, state):
         """(thrust, rudder, elevator) from command (u, r, vz) and state (u, r, pitch, q, vz).
 
         u: speed along the axis, r: yaw rate, pitch (positive nose down, as the model's), q: pitch
-        rate, vz: vertical speed, up.
+        rate, vz: vertical speed, up. A turn or a change of depth asked for below the steerage
+        speed is done at it, forward.
         """
         u_cmd, r_cmd, vz_cmd = command
         u, r, pitch, q, vz = state
         if not all(math.isfinite(v) for v in (u_cmd, r_cmd, vz_cmd, u, r, pitch, q, vz)):
             return 0.0, 0.0, 0.0      # a NaN would come out of the clamps as full thrust: coast
+        steering = abs(r_cmd) > 1e-3 or abs(vz_cmd) > 1e-3
+        if steering and u_cmd < self.steerage_speed:
+            u_cmd = self.steerage_speed
         thrust = DRAG * u_cmd * abs(u_cmd) + self.speed_gain * (u_cmd - u)
         thrust = clamp(thrust, -MAX_THRUST, MAX_THRUST)
         speed = max(abs(u), MIN_SPEED)
@@ -75,6 +87,16 @@ class AuvController:
                                  -self.max_pitch, self.max_pitch)
         elevator = self.pitch_gain * (pitch_target - pitch) - self.pitch_rate_gain * q
         return thrust, clamp(rudder, -MAX_FIN, MAX_FIN), clamp(elevator, -MAX_FIN, MAX_FIN)
+
+
+# the joints of the model from (thrust, rudder, elevator) in base_link: the propeller pushes to the
+# model's +x, the stern; the rudder turns it the same way; the elevator, positive, lifts the bow
+JOINT_SIGNS = (-1.0, 1.0, -1.0)
+
+
+def joint_commands(thrust, rudder, elevator):
+    """(thrust, rudder, elevator) for the model's joints from those of AuvController.step()."""
+    return tuple(sign * value for sign, value in zip(JOINT_SIGNS, (thrust, rudder, elevator)))
 
 
 def pitch_of(q):
@@ -127,8 +149,8 @@ def main(argv=None):
     def tick():
         fresh = now() - seen['time'] <= args.timeout
         command = seen['command'] if fresh else (0.0, 0.0, 0.0)
-        thrust, rudder, elevator = controller.step(command, seen['state']) if fresh else (
-            0.0, 0.0, 0.0)
+        thrust, rudder, elevator = joint_commands(*controller.step(command, seen['state'])) if (
+            fresh) else (0.0, 0.0, 0.0)
         for pub, value in ((thrust_pub, thrust), (rudder_pub, rudder), (elevator_pub, elevator)):
             pub.publish(Float64(data=float(value)))
 

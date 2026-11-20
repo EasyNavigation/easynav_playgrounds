@@ -13,6 +13,13 @@
   <exec_depend>easynav_playground_marine_worlds</exec_depend>
   <exec_depend>easynav_playground_marine_description</exec_depend>
   <exec_depend>launch_yaml</exec_depend>
+  <exec_depend>easynav_system</exec_depend>
+  <exec_depend>easynav_bonxai_maps_manager</exec_depend>
+  <exec_depend>easynav_bonxai_planner</exec_depend>
+  <exec_depend>easynav_fusion_localizer</exec_depend>
+  <exec_depend>easynav_mpc_controller</exec_depend>
+  <exec_depend>navmap_rviz_plugin</exec_depend>
+  <exec_depend>rviz2</exec_depend>
 
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>python3-pytest</test_depend>

@@ -124,3 +124,63 @@ def test_the_water_mesh_faces_up(tmp_path):
     face = [int(i.split('/')[0]) - 1 for i in [l for l in text if l.startswith('f ')][0].split()[1:]]
     a, b, c = verts[face]
     assert np.cross(b - a, c - a)[2] > 0.0                         # counter-clockwise seen from above
+
+
+# --- the relief as a point cloud: the Bonxai map
+
+def read_pcd(path):
+    with open(path, 'rb') as f:
+        data = f.read()
+    end = data.index(b'DATA binary\n') + len(b'DATA binary\n')
+    header = data[:end].decode('ascii')
+    count = int(header.split('POINTS ')[1].split()[0])
+    return header, np.frombuffer(data[end:], dtype=np.float32).reshape(count, 3)
+
+
+def test_the_relief_points_are_on_the_floor_of_the_sea():
+    t = tool()
+    points = t.floor_points(100.0, 2.0)
+    assert points.dtype == np.float32 and points.shape[1] == 3
+    assert len(points) >= 101 * 101
+    grid = points[:101 * 101]
+    assert grid[:, 0].min() == -100.0 and grid[:, 0].max() == 100.0
+    assert np.allclose(grid[:, 2], t.height(grid[:, 0], grid[:, 1]), atol=1e-4)
+
+
+def test_a_steep_slope_gets_points_down_its_column(monkeypatch):
+    t = tool()
+    assert len(t.floor_points(100.0, 2.0)) == 101 * 101      # the sea's slopes are gentle
+    # a cliff of 30 m between x = 0 and x = 2: a wall, not two shelves with a gap between them
+    monkeypatch.setattr(t, 'height', lambda x, y: np.where(np.asarray(x) > 1.0, 0.0, -30.0))
+    points = t.floor_points(10.0, 2.0)
+    n = 11 * 11
+    extra = points[n:]
+    assert len(extra) == 11 * 14                             # 14 more per column at the top
+    assert np.all(extra[:, 0] == 2.0)
+    assert sorted(set(np.round(extra[:, 2], 3))) == [-28.0 + 2.0 * k for k in range(14)]
+
+
+def test_the_point_cloud_is_a_binary_pcd_that_reads_back(tmp_path):
+    t = tool()
+    points = np.array([[1.0, 2.0, 3.0], [-4.5, 0.0, -20.25]], dtype=np.float32)
+    t.write_pcd(str(tmp_path / 'm.pcd'), points)
+    header, back = read_pcd(str(tmp_path / 'm.pcd'))
+    assert 'FIELDS x y z' in header and 'TYPE F F F' in header and 'WIDTH 2' in header
+    assert np.array_equal(back, points)
+
+
+def test_the_map_of_the_package_is_the_relief_of_the_sea(tmp_path):
+    t = tool()
+    made = tmp_path / 'synthetic_sea.pcd'
+    assert t.main(['--pcd', str(made), '--radius', '500', '--pcd-spacing', '2']) == 0
+    shipped = os.path.join(ROOT, 'maps', 'synthetic_sea.pcd')
+    with open(shipped, 'rb') as a, open(made, 'rb') as b:
+        assert a.read() == b.read(), 'regenerate it: synthetic_sea.py --pcd maps/synthetic_sea.pcd'
+
+
+def test_the_command_line_needs_something_to_write():
+    t = tool()
+    with pytest.raises(SystemExit):
+        t.main([])
+    with pytest.raises(SystemExit):
+        t.main(['--pcd', '/tmp/x.pcd', '--pcd-spacing', '0'])

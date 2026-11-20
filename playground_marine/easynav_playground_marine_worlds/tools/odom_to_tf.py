@@ -16,8 +16,9 @@
 A simulator gives the pose of a vehicle in its world as nav_msgs/Odometry (`odom`: the world is
 the map frame, the pose is where the vehicle is). This node publishes it as the transform
 odom -> base_footprint, and the two fixed ones EasyNav wants: map -> odom (identity) and
-base_footprint -> base_link (identity). It is what a robot's own odometry and description do for
-the Summit; the drone of the playground has neither.
+base_footprint -> base_link (identity), and base_link -> each sensor's frame given with
+--frame. It is what a robot's own odometry and description do for the Summit; the drone of the
+playground has neither. --no-odom leaves map -> odom and odom -> base_footprint to a localizer.
 
 --hover: a multicopter that has not been commanded yet does not fly (its controller starts with
 the first command: until then it falls). With this flag the node publishes an empty Twist on
@@ -36,6 +37,10 @@ def main(argv=None):
     parser.add_argument('--base-frame', default='base_footprint')
     parser.add_argument('--link-frame', default='base_link')
     parser.add_argument('--sim-time', action='store_true')
+    parser.add_argument('--frame', action='append', default=[], metavar='CHILD:X,Y,Z,QX,QY,QZ,QW',
+                        help='a static transform link-frame -> CHILD (a sensor), repeatable')
+    parser.add_argument('--no-odom', action='store_true',
+                        help='no map -> odom nor odom -> base: a localizer publishes them')
     parser.add_argument('--hover', action='store_true',
                         help='an empty cmd_vel until another node publishes on it')
     args, ros_args = parser.parse_known_args(argv)
@@ -52,11 +57,23 @@ def main(argv=None):
     tf = TransformBroadcaster(node)
     static = StaticTransformBroadcaster(node)
     fixed = []
-    for parent, child in ((args.map_frame, args.odom_frame), (args.base_frame, args.link_frame)):
+    chain = ((args.base_frame, args.link_frame),) if args.no_odom else (
+        (args.map_frame, args.odom_frame), (args.base_frame, args.link_frame))
+    for parent, child in chain:
         t = TransformStamped()
         t.header.stamp = node.get_clock().now().to_msg()
         t.header.frame_id, t.child_frame_id = parent, child
         t.transform.rotation.w = 1.0
+        fixed.append(t)
+    for spec in args.frame:
+        child, values = spec.split(':', 1)
+        x, y, z, qx, qy, qz, qw = (float(v) for v in values.split(','))
+        t = TransformStamped()
+        t.header.stamp = node.get_clock().now().to_msg()
+        t.header.frame_id, t.child_frame_id = args.link_frame, child
+        t.transform.translation.x, t.transform.translation.y, t.transform.translation.z = x, y, z
+        t.transform.rotation.x, t.transform.rotation.y = qx, qy
+        t.transform.rotation.z, t.transform.rotation.w = qz, qw
         fixed.append(t)
     static.sendTransform(fixed)
 
@@ -71,7 +88,8 @@ def main(argv=None):
         t.transform.rotation = q
         tf.sendTransform(t)
 
-    node.create_subscription(Odometry, 'odom', on_odom, 50)
+    if not args.no_odom:
+        node.create_subscription(Odometry, 'odom', on_odom, 50)
     if args.hover:
         hover = node.create_publisher(Twist, 'cmd_vel', 10)
 

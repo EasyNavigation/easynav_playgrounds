@@ -1,0 +1,175 @@
+Panels:
+- Class: rviz_common/Displays
+  Name: Displays
+  Help Height: 0
+- Class: rviz_common/Views
+  Name: Views
+Visualization Manager:
+  Class: ''
+  Displays:
+  - Class: rviz_default_plugins/Grid
+    Name: Sea level (grid)
+    Enabled: true
+    Value: true
+    Reference Frame: odom
+    Plane Cell Count: 40
+    Cell Size: 5
+    Color: 160; 160; 164
+    Alpha: 0.3
+    Line Style:
+      Value: Lines
+  - Class: rviz_default_plugins/TF
+    Name: TF
+    Enabled: true
+    Value: true
+    Show Names: true
+    Show Axes: true
+    Show Arrows: false
+    Marker Scale: 0.5
+    Frame Timeout: 15
+  - Class: rviz_default_plugins/Odometry
+    Name: Ground truth
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /ground_truth/odom
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Keep: 100
+    Position Tolerance: 0.5
+    Angle Tolerance: 0.5
+    Shape:
+      Value: Arrow
+      Color: 255; 25; 0
+      Alpha: 1
+      Shaft Length: 1
+      Shaft Radius: 0.05
+      Head Length: 0.3
+      Head Radius: 0.1
+    Covariance:
+      Value: false
+  - Class: rviz_imu_plugin/Imu
+    Name: IMU
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /imu/data
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Box properties:
+      Enable box: true
+    Axes properties:
+      Enable axes: true
+      Axes scale: 1
+    Acceleration properties:
+      Enable acceleration: false
+  - Class: rviz_default_plugins/Image
+    Name: Sonar (fan)
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /sonar/image_fan
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Normalize Range: false
+    Median window: 5
+    Min Value: 0
+    Max Value: 1
+  - Class: rviz_default_plugins/PointCloud2
+    Name: Sonar echoes
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /sonar/points
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Style: Points
+    Size (Pixels): 3
+    Color Transformer: FlatColor
+    Color: 255; 255; 0
+    Decay Time: 0
+    Position Transformer: XYZ
+    Use rainbow: true
+    Autocompute Intensity Bounds: true
+  - Class: rviz_default_plugins/Range
+    Name: DVL altitude
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /dvl/altitude
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Color: 0; 170; 255
+    Alpha: 0.5
+    Buffer Length: 1
+  - Class: rviz_default_plugins/TwistStamped
+    Name: DVL velocity
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /dvl/velocity
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Linear Arrow Scale: 2
+    Angular Arrow Scale: 1
+    Linear Color: 0; 255; 255
+    Arrow Width: 0.3
+    History Length: 1
+  - Class: rviz_default_plugins/FluidPressure
+    Name: Depth gauge (pressure)
+    Enabled: true
+    Value: true
+    Topic:
+      Value: /pressure
+      Depth: 5
+      History Policy: Keep Last
+      Reliability Policy: Reliable
+      Durability Policy: Volatile
+    Style: Spheres
+    Size (m): 0.2
+    Channel Name: fluid_pressure
+    Autocompute Intensity Bounds: true
+    Use rainbow: true
+  Enabled: true
+  Global Options:
+    Background Color: 30; 40; 60
+    Fixed Frame: odom
+    Frame Rate: 30
+  Name: root
+  Tools:
+  - Class: rviz_default_plugins/Interact
+  - Class: rviz_default_plugins/MoveCamera
+  - Class: rviz_default_plugins/Measure
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Follow the vehicle
+      Target Frame: base_link
+      Distance: 20
+      Pitch: 0.35
+      Yaw: 3.6
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Near Clip Distance: 0.01
+      Value: Orbit (rviz_default_plugins)
+    Saved: null
+Window Geometry:
+  Height: 1000
+  Width: 1600
+  Hide Left Dock: false
+  Hide Right Dock: true

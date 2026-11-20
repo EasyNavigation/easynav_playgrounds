@@ -1,0 +1,62 @@
+# Copyright 2026 Intelligent Robotics Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# EasyNav drives the Tethys in the synthetic sea: dead reckoning (IMU, DVL, depth gauge; the GNSS
+# at the surface), the sea floor's Bonxai map, A* in 3D and the MPC. Goals under the water: the 3D
+# Goal Pose tool of RViz (shortcut h).
+
+launch:
+- arg:
+    name: params_file
+    default: $(find-pkg-share easynav_playground_marine)/params/submarine_mpc.params.yaml
+    description: EasyNav ROS 2 parameters file
+- arg: {name: gui, default: 'true', description: Set to false to run Gazebo headless}
+- arg: {name: rviz, default: 'true', description: Start RViz2}
+- arg:
+    name: waves
+    default: 'false'
+    description: 'true: the vehicle moves as in a sea (see the marine_sim launch for the rest)'
+
+# The simulation, without its own RViz and without the transforms of the true pose: the
+# localizer publishes map -> odom -> base_footprint. In a group, so its rviz:=false does
+# not overwrite this launch's rviz
+- group:
+  - include:
+      file: $(find-pkg-share easynav_playground_marine_worlds)/launch/marine_sim.launch.py
+      arg:
+      - {name: robot, value: submarine}
+      - {name: gui, value: $(var gui)}
+      - {name: rviz, value: 'false'}
+      - {name: odom_tf, value: 'false'}
+      - {name: waves, value: $(var waves)}
+
+- timer:
+    period: 5.0
+    children:
+    - node:
+        pkg: easynav_system
+        exec: system_main
+        output: screen
+        on_exit: shutdown
+        param:
+        - from: $(var params_file)
+
+- node:
+    if: $(var rviz)
+    pkg: rviz2
+    exec: rviz2
+    output: screen
+    args: -d $(find-pkg-share easynav_playground_marine)/rviz/submarine_easynav.rviz
+    param:
+    - {name: use_sim_time, value: true}
