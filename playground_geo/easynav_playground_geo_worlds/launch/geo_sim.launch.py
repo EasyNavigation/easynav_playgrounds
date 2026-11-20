@@ -147,7 +147,7 @@ def write_last_world(world, kind, path=LAST_WORLD):
     path = os.path.expanduser(path)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     lines = [
-        '# written by easynav_playground_geo: the world of the last launch',
+        '# written by easynav_playground_geo_worlds: the world of the last launch',
         'world: %s' % kind,
         'directory: %s' % world['dir'],
         'latitude: %s' % world['latitude'],
@@ -205,7 +205,7 @@ def generate_launch_description():
 
 
 def setup(context):
-    here = get_package_share_directory('easynav_playground_geo')
+    here = get_package_share_directory('easynav_playground_geo_worlds')
     summit_worlds = get_package_share_directory('easynav_playground_summit_worlds')
 
     def arg(name):
@@ -218,8 +218,8 @@ def setup(context):
     if gpu not in ('auto', 'nvidia', 'none'):
         raise RuntimeError('gpu:=%s must be auto, nvidia or none' % gpu)
 
-    tool = os.path.join(get_package_prefix('easynav_playground_geo'), 'lib',
-                        'easynav_playground_geo', 'geo_world.py')
+    tool = os.path.join(get_package_prefix('easynav_playground_geo_worlds'), 'lib',
+                        'easynav_playground_geo_worlds', 'geo_world.py')
     cmd = generator_command(tool, os.path.join(here, 'worlds', 'geo.world.in'), cfg)
     print('geo_sim.launch.py: %s world of %s, %s, radius %s m (made once, then reused; the first '
           'time takes from seconds to minutes)' % (cfg['world'], cfg['lat'], cfg['lon'],

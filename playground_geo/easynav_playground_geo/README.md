@@ -18,9 +18,18 @@ ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=46.0207 lon:=7.7
 ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
 ```
 
-Like the other playgrounds, this package is **only the simulation**: the world and the robot.
+It is **only the simulation** for now: the world and the robot, with no EasyNav configuration yet.
 Navigation (EasyNav, or anything else) is another launch, started after this one; see
 [Making a map of the same place](#making-a-map-of-the-same-place).
+
+Like the other playgrounds it is split by what each part needs, but it has no robot description of
+its own: the robot is the Summit XL of `playground_summit`.
+
+| Package | Contents | Depends on |
+| --- | --- | --- |
+| [`easynav_playground_geo_worlds`](../easynav_playground_geo_worlds) | The simulation: the world generator, the world template, the tree models, and the launcher that makes the world, starts Gazebo and spawns the Summit | Gazebo, ros_gz, the Summit XL of `playground_summit`, `navmap_tools` (outside Spain); not EasyNav |
+| `easynav_playground_geo` (this one) | The launcher above, `easynav_geo.launch.yaml`; the EasyNav configurations will go here | `easynav_playground_geo_worlds` |
+| (none) | The robot: `easynav_playground_summit_description` | |
 
 ## Contents
 
@@ -28,12 +37,10 @@ Navigation (EasyNav, or anything else) is another launch, started after this one
 - [The two worlds](#the-two-worlds)
 - [Arguments](#arguments)
 - [Where the data comes from](#where-the-data-comes-from)
-- [What is generated, and where](#what-is-generated-and-where)
 - [Making a map of the same place](#making-a-map-of-the-same-place)
 - [More precision in Spain: PNOA-LiDAR](#more-precision-in-spain-pnoa-lidar)
 - [The robot](#the-robot)
 - [GPU](#gpu)
-- [Using the generator alone](#using-the-generator-alone)
 - [Limits](#limits)
 - [Tests](#tests)
 - [Licenses and attribution](#licenses-and-attribution)
@@ -65,10 +72,12 @@ the Esri imagery. The first launch of a place needs a network connection; the ne
 | `terrain` (default) | The terrain with the aerial imagery draped on it | Downloads the elevation model and the imagery: seconds to a minute |
 | `area` | The terrain, plus buildings, walls, fences and hedges, and trees | Also queries the cadastre / OpenStreetMap, builds every building and plants the trees: minutes |
 
-Both are the same generator (`tools/geo_world.py`): `terrain` is `area` without buildings, walls and
-trees. Each world is made once and kept; launching the same place with the same options again
-starts Gazebo at once. Changing any option (the radius, `trees`, the LiDAR files...) makes another
-world, which is generated the first time.
+Both are the same generator (`tools/geo_world.py` of `easynav_playground_geo_worlds`): `terrain` is
+`area` without buildings, walls and trees. Each world is made once and kept in
+`~/.ros/easynav_geo/worlds/` (what goes there: the
+[worlds package](../easynav_playground_geo_worlds/README.md#what-is-generated-and-where)); launching
+the same place with the same options again starts Gazebo at once. Changing any option (the radius,
+`trees`, the LiDAR files...) makes another world, which is generated the first time.
 
 The world is a square of side `2 x radius` centred on `lat`, `lon`. That point is the origin of the
 world: x points east, y north, and z = 0 is the ground there. The world declares those coordinates
@@ -116,29 +125,10 @@ as a solid block over their footprint. A building taller than 60 floors (192 m) 
 height. The public OpenStreetMap servers (Overpass) are often busy: the generator tries three and
 waits, so a first `world:=area` can take minutes.
 
-Trees use two Gazebo Fuel models, an oak and a pine (CC0, `models/trees/`), scaled to each crown
+Trees use two Gazebo Fuel models, an oak and a pine (CC0, `models/trees/` of the worlds package), scaled to each crown
 and merged into one mesh. Only the trunks collide: the robot drives under the crowns. Before
 planting, every tree is checked: none inside a building, wall or structure, none within 3 m of the
 robot's start, no two trunks closer than 1.5 m.
-
-## What is generated, and where
-
-Each world goes to its own directory under `~/.ros/easynav_geo/worlds/`, named
-`terrain_<lat>_<lon>_<radius>` or `area_<lat>_<lon>_<radius>`:
-
-| File | What it is |
-|---|---|
-| `world.sdf` | The Gazebo world |
-| `terrain.obj`, `terrain.mtl`, `ortho.jpg` | The terrain as it is drawn, with the imagery |
-| `terrain.stl` | The terrain as it collides (a coarser mesh, so that Gazebo stays fast) |
-| `buildings.*`, `walls.*`, `trees.*` | `world:=area`: what stands on the terrain, drawn and colliding |
-| `navmap.stl` | Terrain + buildings + walls + tree trunks, without the crowns: the surface a ground robot moves on and the obstacles on it, for making a map (see below) |
-| `navmap_ground.stl`, `navmap_holes.stl` | The same split in two: the ground alone, and what stands on it |
-| `world.yaml` | The place, the elevation of the origin, the spawn spot, and how many buildings, walls and trees there are |
-
-Other caches: the OpenStreetMap answers in `~/.cache/easynav_geo/overpass/`, and outside Spain the
-terrain and imagery tiles in `navmap_tools`' own cache. To make a world again from scratch, remove
-its directory.
 
 ## Making a map of the same place
 
@@ -157,8 +147,8 @@ mesh: /home/<user>/.ros/easynav_geo/worlds/area_40.41680_-3.70380_250/navmap.stl
 An application that follows the simulation reads it to make its map of the very place the robot
 is in, in the same frame: `mesh` is the ground and the obstacles (`navmap.stl`, in the world frame),
 and `latitude`, `longitude` and `ground_elevation` tie that frame to the GPS. For example, a NavMap
-of the place can be made from `navmap.stl` with `navmap_tools`. Nothing in this package depends on
-which application does it.
+of the place can be made from `navmap.stl` with `navmap_tools`. Nothing in this playground depends
+on which application does it.
 
 ## More precision in Spain: PNOA-LiDAR
 
@@ -176,7 +166,7 @@ not allow scripted downloads: download the sheets of your area by hand and put t
 a place needs (and marks those already there):
 
 ```bash
-python3 $(ros2 pkg prefix easynav_playground_geo)/lib/easynav_playground_geo/geo_world.py \
+python3 $(ros2 pkg prefix easynav_playground_geo_worlds)/lib/easynav_playground_geo_worlds/geo_world.py \
   --lat 40.4168 --lon -3.7038 --radius 250 --lidar-tiles
 ```
 
@@ -200,22 +190,6 @@ On a laptop with an NVIDIA GPU and hybrid graphics, Gazebo may fall back to soft
 they are already set). `gpu:=nvidia` forces it, `gpu:=none` turns it off. Check the speed with
 `gz topic -e -t /stats -n 1` (`real_time_factor`).
 
-## Using the generator alone
-
-`geo_world.py` makes a world without starting Gazebo, and has more options than the launch
-(`--help`):
-
-```bash
-G=$(ros2 pkg prefix easynav_playground_geo)/lib/easynav_playground_geo/geo_world.py
-python3 $G --lat 48.8562 --lon 2.2976 --radius 400                 # Paris, with everything
-python3 $G --lat 46.0207 --lon 7.7491 --radius 300 --no-buildings --no-trees --no-walls
-```
-
-Among them: `--terrain-res` and `--navmap-res` (mesh spacing), `--ortho-ppm` (imagery pixels per
-metre), `--max-trees`, `--force` (make it again), and `--survey-model`, `--survey-stl` and
-`--survey-elevation`, which put a survey mesh of the real site (photogrammetry, for instance) into
-the terrain. It prints its progress, and as its last line the directory of the world.
-
 ## Limits
 
 - **Network.** The first launch of a place downloads its data, from public services that change and
@@ -232,19 +206,19 @@ the terrain. It prints its progress, and as its last line the directory of the w
 ## Tests
 
 ```bash
-colcon test --packages-select easynav_playground_geo && colcon test-result --verbose
+colcon test --packages-select easynav_playground_geo easynav_playground_geo_worlds
+colcon test-result --verbose
 ```
 
-- `test/test_launch_files.py`: `easynav_geo.launch.yaml` against `geo_sim.launch.py`: every argument
-  is forwarded, exists there and has the same default (nothing is started).
-- `test/test_geo_sim_launch.py`: the decisions of the launch without starting anything: the generator
-  command of each world, the refused arguments, the spawn pose, `last_world.yaml`.
-- `test/test_geo_world.py`: the parts of the generator that work offline (OpenStreetMap buildings
-  from a canned answer, the regions, the geometry, the cache key of each world).
+Here, `test/test_launch_files.py`: `easynav_geo.launch.yaml` against `geo_sim.launch.py` of the
+worlds package: every argument is forwarded, exists there and has the same default (nothing is
+started). The tests of the simulation and the generator are in the
+[worlds package](../easynav_playground_geo_worlds/README.md#tests).
 
 ## Licenses and attribution
 
-The code is Apache-2.0 (`LICENSE`); the tree models are CC0 (`models/trees/README.md`).
+The code of both packages is Apache-2.0 (`LICENSE`); the tree models are CC0
+(`easynav_playground_geo_worlds/models/trees/README.md`).
 
 A generated world contains data of its providers, under their terms. If you publish images, videos
 or the worlds themselves, credit them as their terms ask:

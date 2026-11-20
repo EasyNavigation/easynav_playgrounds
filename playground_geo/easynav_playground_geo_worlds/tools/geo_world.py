@@ -1154,11 +1154,11 @@ def main():
 
     here = os.path.dirname(os.path.abspath(__file__))
     template = a.template
-    # --template, then the source tree (tools/../worlds), then the install: lib/easynav_playground_geo/
-    # -> share/easynav_playground_geo in the default isolated layout, ../../../share in a merged one
+    # --template, then the source tree (tools/../worlds), then the install: lib/easynav_playground_geo_worlds/
+    # -> share/easynav_playground_geo_worlds in the default isolated layout, ../../../share in a merged one
     for c in (template, os.path.join(here, '..', 'worlds', 'geo.world.in'),
-              os.path.join(here, '..', '..', 'share', 'easynav_playground_geo', 'worlds', 'geo.world.in'),
-              os.path.join(here, '..', '..', '..', 'share', 'easynav_playground_geo', 'worlds',
+              os.path.join(here, '..', '..', 'share', 'easynav_playground_geo_worlds', 'worlds', 'geo.world.in'),
+              os.path.join(here, '..', '..', '..', 'share', 'easynav_playground_geo_worlds', 'worlds',
                            'geo.world.in')):
         if c and os.path.isfile(c):
             template = c

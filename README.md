@@ -24,7 +24,7 @@ Each playground is split in three packages, so that the robot model and the simu
 | [`playground_ackermann`](playground_ackermann/easynav_playground_ackermann) | Toyota Prius (Ackermann steering) on the Sonoma Raceway | NavMap of the track with GPS fusion (RPP, MPC) |
 | [`playground_aerial`](playground_aerial/easynav_playground_aerial) | A flying saucer (UFO) in a town | Bonxai with a 3D planner and MPC |
 | [`playground_marine`](playground_marine/easynav_playground_marine) | A boat (WAM-V) and a submarine (MBARI Tethys LRAUV) in a synthetic sea, with their autopilots and optional waves (the vehicle moves and the water is drawn) | None yet: only the simulation |
-| [`playground_geo`](playground_geo/easynav_playground_geo) | Robotnik Summit XL in the world of any real place, from its coordinates: terrain and aerial imagery, optionally buildings, walls and trees, from open data | None yet: only the simulation |
+| [`playground_geo`](playground_geo/easynav_playground_geo) | Robotnik Summit XL (the description of `playground_summit`) in the world of any real place, from its coordinates: terrain and aerial imagery, optionally buildings, walls and trees, from open data | None yet: only the simulation |
 
 For example, with the Kobuki:
 

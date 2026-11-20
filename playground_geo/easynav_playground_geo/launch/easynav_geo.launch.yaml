@@ -15,7 +15,7 @@
 # The world of a real place in Gazebo, with the Summit XL in it:
 #   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=46.0207 lon:=7.7491 radius:=300
 #   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
-# Only the simulation: EasyNav (or any other application) is another launch. See the README.
+# Only the simulation (easynav_playground_geo_worlds): no EasyNav configuration yet. See the README.
 
 launch:
 - arg: {name: world, default: terrain, description: 'terrain: the terrain and its imagery. area: plus buildings, walls and trees'}
@@ -33,7 +33,7 @@ launch:
 - arg: {name: gpu, default: auto, description: 'auto, nvidia or none: render on the NVIDIA GPU of a laptop'}
 
 - include:
-    file: $(find-pkg-share easynav_playground_geo)/launch/geo_sim.launch.py
+    file: $(find-pkg-share easynav_playground_geo_worlds)/launch/geo_sim.launch.py
     arg:
     - {name: world, value: $(var world)}
     - {name: lat, value: $(var lat)}

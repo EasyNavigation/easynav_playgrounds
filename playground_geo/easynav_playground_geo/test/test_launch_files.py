@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The launch file of the playground against the launch file of the simulation it forwards to.
+"""The launch file of the playground against the launch file of the simulation it forwards to
+(easynav_playground_geo_worlds).
 
 No process is started: the YAML is parsed, and each argument it forwards is looked for in the
 arguments that geo_sim.launch.py declares (a renamed or removed one would otherwise only show when a
@@ -34,7 +35,8 @@ PLAYGROUND = os.path.join(ROOT, 'launch', 'easynav_geo.launch.yaml')
 
 def declared_by_sim():
     """{argument: default} of geo_sim.launch.py."""
-    path = os.path.join(ROOT, 'launch', 'geo_sim.launch.py')
+    path = os.path.join(os.path.dirname(ROOT), 'easynav_playground_geo_worlds', 'launch',
+                        'geo_sim.launch.py')
     spec = importlib.util.spec_from_file_location('geo_sim_launch', path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -66,7 +68,8 @@ def forwarded():
 
 
 def test_it_includes_the_simulation_launch_file():
-    assert include_of()['file'] == '$(find-pkg-share easynav_playground_geo)/launch/geo_sim.launch.py'
+    assert include_of()['file'] == (
+        '$(find-pkg-share easynav_playground_geo_worlds)/launch/geo_sim.launch.py')
 
 
 def test_every_argument_is_forwarded_as_itself_and_exists_in_the_simulation():

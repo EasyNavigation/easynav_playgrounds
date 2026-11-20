@@ -3,38 +3,23 @@
 <package format="3">
   <name>easynav_playground_geo</name>
   <version>0.1.0</version>
-  <description>The world of any real place in Gazebo, from its coordinates and a radius, with the Summit XL in it: terrain and aerial imagery, and optionally buildings, walls and trees, from open data.</description>
+  <description>Playground for real places: one launch, with world:=terrain or world:=area, starts the geo simulation (the Gazebo world of any place, from its coordinates, with the Summit XL in it). It carries no EasyNav configuration yet.</description>
   <maintainer email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</maintainer>
   <license file="LICENSE">Apache-2.0</license>
   <author email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <!-- the robot, its controllers and the Gazebo launchers -->
-  <exec_depend>easynav_playground_summit_worlds</exec_depend>
+  <exec_depend>easynav_playground_geo_worlds</exec_depend>
+  <!-- the robot: the Summit XL of playground_summit (this playground has no description of its own) -->
   <exec_depend>easynav_playground_summit_description</exec_depend>
-  <exec_depend>ros_gz_sim</exec_depend>
-  <exec_depend>ros_gz_bridge</exec_depend>
-  <!-- outside Spain: the Copernicus terrain and the Esri imagery (navmap_tools.geo) -->
-  <exec_depend>navmap_tools</exec_depend>
-
-  <exec_depend>launch</exec_depend>
-  <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch_yaml</exec_depend>
-  <exec_depend>ament_index_python</exec_depend>
-  <!-- geo_world.py; mapbox_earcut and trimesh have no rosdep key: see the README -->
-  <exec_depend>python3-numpy</exec_depend>
-  <exec_depend>python3-scipy</exec_depend>
-  <exec_depend>python3-opencv</exec_depend>
-  <exec_depend>python3-requests</exec_depend>
-  <exec_depend>python3-pil</exec_depend>
-  <exec_depend>python3-pyproj</exec_depend>
 
   <test_depend>ament_cmake_pytest</test_depend>
-  <test_depend>ament_lint_auto</test_depend>
-  <test_depend>ament_lint_common</test_depend>
   <test_depend>python3-pytest</test_depend>
   <test_depend>python3-yaml</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>easynav_playground_geo_worlds</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

@@ -39,10 +39,10 @@ MIN_TRUNK_GAP = 1.5               # m between trunks: their collisions never ove
 def models_dir(here):
     """models/trees of the source tree or of the installed package."""
     for c in (os.path.join(here, '..', 'models', 'trees'),
-              os.path.join(here, '..', '..', 'share', 'easynav_playground_geo', 'models', 'trees')):
+              os.path.join(here, '..', '..', 'share', 'easynav_playground_geo_worlds', 'models', 'trees')):
         if os.path.isdir(c):
             return os.path.abspath(c)
-    raise FileNotFoundError('models/trees of easynav_playground_geo not found (--tree-models)')
+    raise FileNotFoundError('models/trees of easynav_playground_geo_worlds not found (--tree-models)')
 
 
 def load_dae(path):
