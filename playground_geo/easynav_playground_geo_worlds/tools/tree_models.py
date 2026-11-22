@@ -14,7 +14,8 @@
 
 """Trees for geo_world.py: the Gazebo Fuel oak and pine (CC0, models/trees/), planted by the
 thousand into ONE mesh (a .glb with 4 submeshes: oak/pine x leaves/bark) and ONE collision mesh (the
-trunks), so Gazebo draws and collides the whole forest as a single static object."""
+trunks), so Gazebo draws and collides the whole forest as a single static object. The crowns start
+CROWN_CLEARANCE over the ground: below it a tree is the trunk that collides, and nothing else."""
 
 import math
 import os
@@ -34,6 +35,12 @@ SPECIES = {
 }
 TRUNK_COLLISION_HEIGHT = 2.0      # m: the part of the trunk the robot can touch
 MIN_TRUNK_GAP = 1.5               # m between trunks: their collisions never overlap
+# m over the ground under the trunk: no leaf or branch is lower. Only the trunks collide, so below
+# this height a tree must show its trunk alone: the lidar sees the visual mesh, and a crown hanging
+# lower would be an obstacle for the robot's sensors that its body never touches. Street trees are
+# pruned like that.
+CROWN_CLEARANCE = 2.5
+SINK = 0.1                        # m: the base of a model goes this far under the ground
 
 
 def models_dir(here):
@@ -99,6 +106,40 @@ def choose(r, h):
     return sp, sxy, sz
 
 
+def crown_base(parts):
+    """Height (m, in the model) where the crown of a model starts: its lowest leaf."""
+    return float(min(P[:, 2].min() for name, (P, N, U, F) in parts.items() if name == 'Branch'))
+
+
+def trunk_radius(sp, sxy):
+    """Radius (m) of the trunk of a tree: what collides, and the widest the trunk is drawn below the
+    crown."""
+    return float(np.clip(SPECIES[sp]['trunk'] * sxy, 0.15, 0.6))
+
+
+def shape(P, sp, part, sxy, sz, zc):
+    """The vertices P [n, 3] of a part ('Branch': leaves, else bark) of the model of species sp,
+    scaled (sxy, sz) for one tree and with the crown lifted: the crown (above zc, the crown base of
+    the model) starts CROWN_CLEARANCE over the ground or higher, keeps its width and fills the height
+    of the tree (sz x the model's) as far as it can; below it the trunk is stretched and drawn no
+    wider than its collision (the roots and the low branches of the model are drawn into it). Base of
+    the trunk at z = 0, SINK under the ground."""
+    s = SPECIES[sp]
+    Q = np.array(P, float)
+    Q[:, 0] -= s['cx']
+    base = max(CROWN_CLEARANCE + SINK, zc * sz)
+    kc = max((sz * s['height'] - base) / (s['height'] - zc), 0.35 * sz)
+    low = Q[:, 2] < zc
+    if part != 'Branch':
+        cap = trunk_radius(sp, sxy) / sxy
+        r = np.hypot(Q[:, 0], Q[:, 1])
+        f = np.where(low & (r > cap), cap / np.maximum(r, 1e-9), 1.0)
+        Q[:, :2] *= f[:, None]
+    Q[:, :2] *= sxy
+    Q[:, 2] = np.where(low, Q[:, 2] * base / zc, base + (Q[:, 2] - zc) * kc)
+    return Q
+
+
 def tree_height(r, h):
     return h if h is not None else 3.5 + 1.3 * r
 
@@ -143,6 +184,7 @@ def plant(trees, ground, models, out_glb, rng):
     from trimesh.visual import TextureVisuals
     from trimesh.visual.material import PBRMaterial
     parts = {k: load_dae(os.path.join(models, s['dae'])) for k, s in SPECIES.items()}
+    zc = {k: crown_base(p) for k, p in parts.items()}
     acc = {}
     trunks, blocks, info = [], [], []
     for x, y, r, h in trees:
@@ -154,11 +196,8 @@ def plant(trees, ground, models, out_glb, rng):
         c, s_ = math.cos(yaw), math.sin(yaw)
         z = float(ground(np.array([x]), np.array([y]))[0])
         for part, (P, N, U, F) in parts[sp].items():
-            Q = P.copy()
-            Q[:, 0] -= SPECIES[sp]['cx']
-            Q[:, :2] *= sxy
-            Q[:, 2] *= sz
-            Q = np.c_[c * Q[:, 0] - s_ * Q[:, 1], s_ * Q[:, 0] + c * Q[:, 1], Q[:, 2]] + np.array([x, y, z - 0.1])
+            Q = shape(P, sp, part, sxy, sz, zc[sp])
+            Q = np.c_[c * Q[:, 0] - s_ * Q[:, 1], s_ * Q[:, 0] + c * Q[:, 1], Q[:, 2]] + np.array([x, y, z - SINK])
             Nn = np.c_[c * N[:, 0] - s_ * N[:, 1], s_ * N[:, 0] + c * N[:, 1], N[:, 2]]
             a = acc.setdefault((sp, part), dict(v=[], n=[], u=[], f=[], base=0))
             a['v'].append(Q)
@@ -166,7 +205,7 @@ def plant(trees, ground, models, out_glb, rng):
             a['u'].append(U)
             a['f'].append(F + a['base'])
             a['base'] += len(Q)
-        rt = float(np.clip(SPECIES[sp]['trunk'] * sxy, 0.15, 0.6))
+        rt = trunk_radius(sp, sxy)
         info.append((x, y, rt))
         trunks.append(prism(x, y, z - 0.2, z + TRUNK_COLLISION_HEIGHT, rt, 8))
         blocks.append(prism(x, y, z - 0.2, z + TRUNK_COLLISION_HEIGHT, 0.5, 4, square=True))

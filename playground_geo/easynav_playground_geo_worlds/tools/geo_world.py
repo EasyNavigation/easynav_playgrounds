@@ -1085,7 +1085,7 @@ def cache_key(a, region, lidar_id):
     return hashlib.md5(json.dumps([a.lat, a.lon, a.radius, a.terrain_res, a.navmap_res, a.ortho_ppm,
                                   a.no_trees, a.no_walls, a.no_buildings, a.survey_model, a.survey_stl,
                                   a.survey_elevation, a.roof, lidar_id, a.max_trees, region, a.sea,
-                                  a.sea_model, 11]).encode()).hexdigest()
+                                  a.sea_model, 12]).encode()).hexdigest()
 
 
 def main():

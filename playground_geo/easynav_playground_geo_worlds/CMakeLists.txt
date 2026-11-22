@@ -19,6 +19,7 @@ if(BUILD_TESTING)
   ament_add_pytest_test(geo_sim_launch test/test_geo_sim_launch.py)
   # the world generator: what works offline (no download)
   ament_add_pytest_test(geo_world test/test_geo_world.py)
+  ament_add_pytest_test(tree_models test/test_tree_models.py)
 endif()
 
 ament_package()

@@ -126,7 +126,10 @@ height. The public OpenStreetMap servers (Overpass) are often busy: the generato
 waits, so a first `world:=area` can take minutes.
 
 Trees use two Gazebo Fuel models, an oak and a pine (CC0, `models/trees/` of the worlds package), scaled to each crown
-and merged into one mesh. Only the trunks collide: the robot drives under the crowns. Before
+and merged into one mesh. Only the trunks collide: the robot drives under the crowns. So that its
+sensors agree (Gazebo's lidar sees the drawn mesh), every crown starts 2.5 m over the ground or
+higher, as on a pruned street tree, and below that a tree is drawn as its trunk alone, no wider than
+what collides (the models' roots and low branches are drawn into it). Before
 planting, every tree is checked: none inside a building, wall or structure, none within 3 m of the
 robot's start, no two trunks closer than 1.5 m.
 
