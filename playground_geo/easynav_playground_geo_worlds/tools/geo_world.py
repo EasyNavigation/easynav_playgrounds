@@ -52,17 +52,16 @@ import xml.etree.ElementTree as ET
 
 try:
     import cv2
-    import mapbox_earcut  # noqa: F401
-    import trimesh  # noqa: F401  (tree_models writes the forest with it)
     import numpy as np
     import requests
     from PIL import Image
     from pyproj import CRS, Transformer
     from scipy import ndimage
 except ImportError as e:
-    sys.exit('geo_world: %s. Install: pip install --user --break-system-packages mapbox_earcut '
-             'trimesh pyproj requests scipy opencv-python-headless pillow "numpy<2" (and laspy '
-             'lazrs for --lidar). Outside Spain it also needs navmap_tools (a sourced workspace)' % e)
+    sys.exit('geo_world: %s. Install the dependencies with rosdep (rosdep install --from-paths src '
+             '--ignore-src -y), or: sudo apt install python3-opencv python3-numpy python3-requests '
+             'python3-pil python3-pyproj python3-scipy. Outside Spain it also needs navmap_tools '
+             '(a sourced workspace)' % e)
 
 import tree_models  # noqa: E402  (next to this file)
 
@@ -672,19 +671,179 @@ def signed_area(r):
     return 0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y)
 
 
+def _cross(o, a, b):
+    """> 0 when o, a, b turn left (counter-clockwise)."""
+    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
+
+
+def _locally_inside(pts, poly, i, q):
+    """Whether the point q is inside the polygon's corner at its position i (counter-clockwise)."""
+    a, v, b = pts[poly[i - 1]], pts[poly[i]], pts[poly[(i + 1) % len(poly)]]
+    if _cross(a, v, b) >= 0:                                    # convex corner
+        return _cross(a, v, q) >= 0 and _cross(v, b, q) >= 0
+    return _cross(a, v, q) >= 0 or _cross(v, b, q) >= 0         # reflex corner
+
+
+def _in_triangle(a, b, c, q):
+    """Whether the points q [n, 2] are in the triangle a, b, c or on its sides (either winding)."""
+    d1 = (b[0] - a[0]) * (q[:, 1] - a[1]) - (b[1] - a[1]) * (q[:, 0] - a[0])
+    d2 = (c[0] - b[0]) * (q[:, 1] - b[1]) - (c[1] - b[1]) * (q[:, 0] - b[0])
+    d3 = (a[0] - c[0]) * (q[:, 1] - c[1]) - (a[1] - c[1]) * (q[:, 0] - c[0])
+    return ((d1 >= 0) & (d2 >= 0) & (d3 >= 0)) | ((d1 <= 0) & (d2 <= 0) & (d3 <= 0))
+
+
+def _bridge(pts, poly, hole):
+    """The polygon (positions in pts, counter-clockwise) with a hole (clockwise) joined to it: from
+    the hole's rightmost vertex M, a ray to +x meets the polygon; the vertex P of the polygon that M
+    sees there takes two coincident edges, P to M and back (Eberly): ..., P, M, the hole, M, P, ...
+    A hole the ray finds no polygon for (not inside it) is left out."""
+    m = max(range(len(hole)), key=lambda i: (pts[hole[i], 0], -pts[hole[i], 1]))
+    M = pts[hole[m]]
+    n = len(poly)
+    hit, bp = np.inf, None
+    for i in range(n):
+        a, b = pts[poly[i]], pts[poly[(i + 1) % n]]
+        # the edges the ray leaves the polygon through go up (the inside is on their left)
+        if a[1] <= M[1] <= b[1] and a[1] < b[1]:
+            x = a[0] + (M[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
+            if M[0] <= x < hit:
+                hit = x
+                if x == a[0] and a[1] == M[1]:
+                    bp = i
+                elif x == b[0] and b[1] == M[1]:
+                    bp = (i + 1) % n
+                else:
+                    bp = i if a[0] > b[0] else (i + 1) % n
+    if bp is None:
+        return poly
+    P = pts[poly[bp]]
+    if not (P[0] == hit and P[1] == M[1]):
+        # a vertex of the polygon in the triangle M, I, P hides P from M: the one closest in angle
+        # to the ray (then the nearest) is seen
+        I = np.array([hit, M[1]])
+        q = pts[poly]
+        inside = _in_triangle(M, I, P, q) & (q[:, 0] >= M[0]) & ~((q[:, 0] == M[0]) & (q[:, 1] == M[1]))
+        best = (np.inf, np.inf)
+        for i in np.flatnonzero(inside):
+            dx = q[i, 0] - M[0]
+            tan = abs(q[i, 1] - M[1]) / dx if dx > 0 else np.inf
+            key = (tan, float(np.hypot(dx, q[i, 1] - M[1])))
+            if key < best and _locally_inside(pts, poly, i, M):
+                best, bp = key, i
+    # where P appears more than once (an earlier bridge), the corner that M is in
+    same = [i for i in range(n) if (pts[poly[i]] == pts[poly[bp]]).all()]
+    if len(same) > 1:
+        bp = next((i for i in same if _locally_inside(pts, poly, i, M)), bp)
+    return poly[:bp + 1] + hole[m:] + hole[:m + 1] + poly[bp:]
+
+
+def triangulate(rings):
+    """Triangles [m, 3] (indices into np.concatenate(rings)) covering the polygon whose first ring
+    is its outline and the others its holes, any winding: ear clipping, the holes joined to the
+    outline first, as earcut does. Repeated points and rings without area are skipped."""
+    pts = np.concatenate(rings).astype(float)
+    start = np.cumsum([0] + [len(r) for r in rings])
+
+    def ring(k, ccw):
+        ids = []
+        for i in range(start[k], start[k + 1]):
+            if not ids or (pts[i] != pts[ids[-1]]).any():
+                ids.append(i)
+        while len(ids) > 1 and (pts[ids[0]] == pts[ids[-1]]).all():
+            ids.pop()
+        if len(ids) < 3:
+            return None
+        a = signed_area(pts[ids])
+        if a == 0:
+            return None
+        return ids if (a > 0) == ccw else ids[::-1]
+
+    poly = ring(0, True)
+    if poly is None:
+        return np.zeros((0, 3), np.int64)
+    holes = [h for h in (ring(k, False) for k in range(1, len(rings))) if h is not None]
+    for h in sorted(holes, key=lambda h: -pts[h, 0].max()):
+        poly = _bridge(pts, poly, h)
+
+    # ear clipping on the positions of poly (a vertex of a bridge is there twice)
+    n = len(poly)
+    P = pts[poly]
+    prv = [(i - 1) % n for i in range(n)]
+    nxt = [(i + 1) % n for i in range(n)]
+    alive = np.ones(n, bool)
+    tris = []
+    left, i, misses = n, 0, 0
+
+    def cut(i, emit):
+        nonlocal left, misses
+        a, c = prv[i], nxt[i]
+        if emit:
+            tris.append((poly[a], poly[i], poly[c]))
+        nxt[a], prv[c] = c, a
+        alive[i] = False
+        left -= 1
+        misses = 0
+        return c
+
+    while left > 3:
+        a, c = prv[i], nxt[i]
+        cr = _cross(P[a], P[i], P[c])
+        if cr == 0:                     # no area: the vertex goes, nothing is drawn
+            i = cut(i, False)
+            continue
+        if cr > 0:
+            # an ear: no other vertex in it or on its sides. Another copy of one of its corners (a
+            # bridge, a courtyard touching the outline) is in the way if one of its sides goes into
+            # the ear, or the ear goes into its corner
+            others = np.flatnonzero(alive)
+            others = others[(others != a) & (others != i) & (others != c)]
+            q = P[others]
+            tri = (P[a], P[i], P[c])
+            corner = (((q == tri[0]).all(1)) | ((q == tri[1]).all(1)) | ((q == tri[2]).all(1)))
+            clear = not _in_triangle(*tri, q[~corner]).any()
+            mid = (tri[0] + tri[1] + tri[2]) / 3.0
+            for j in others[corner] if clear else ():
+                k = next(k for k in range(3) if (P[j] == tri[k]).all())
+                X, U, V = tri[k], tri[(k + 1) % 3], tri[(k + 2) % 3]
+                A, B = P[prv[j]], P[nxt[j]]
+                for N in (A, B):
+                    if _cross(X, U, N) > 0 and _cross(X, N, V) > 0:
+                        clear = False
+                if _cross(A, X, B) >= 0:
+                    inside = _cross(A, X, mid) > 0 and _cross(X, B, mid) > 0
+                else:
+                    inside = _cross(A, X, mid) > 0 or _cross(X, B, mid) > 0
+                if inside:
+                    clear = False
+            if clear:
+                i = cut(i, True)
+                continue
+        i = nxt[i]
+        misses += 1
+        if misses > left:
+            # a whole turn without an ear (the outline crosses itself): the most convex corner goes
+            live = np.flatnonzero(alive)
+            crs = [_cross(P[prv[j]], P[j], P[nxt[j]]) for j in live]
+            j = int(live[int(np.argmax(crs))])
+            if max(crs) <= 0:
+                break
+            i = cut(j, True)
+    if left == 3 and _cross(P[prv[i]], P[i], P[nxt[i]]) > 0:
+        tris.append((poly[prv[i]], poly[i], poly[nxt[i]]))
+    return np.array(tris, np.int64).reshape(-1, 3)
+
+
 def extrude(ext, holes, z0, z1, uv_roof, facade_w=6.0, floors=1):
-    """Roof (earcut) and walls of one footprint. Returns (roof v, uv, f), (wall v, uv, f)."""
-    import mapbox_earcut as earcut
+    """Roof and walls of one footprint. Returns (roof v, uv, f), (wall v, uv, f)."""
     if signed_area(ext) < 0:
         ext = ext[::-1]
     holes = [h[::-1] if signed_area(h) > 0 else h for h in holes]
     rings = [ext] + holes
     pts = np.concatenate(rings)
-    ends = np.cumsum([len(r) for r in rings]).astype(np.uint32)
-    tri = earcut.triangulate_float64(pts, ends).reshape(-1, 3).astype(np.int64)
+    tri = triangulate(rings)
     if len(tri) == 0:
         return None
-    # roofs face up whatever the order earcut returned
+    # roofs face up whatever the order of the triangles
     cr = np.cross(np.c_[pts[tri[:, 1]] - pts[tri[:, 0]], np.zeros(len(tri))],
                   np.c_[pts[tri[:, 2]] - pts[tri[:, 0]], np.zeros(len(tri))])[:, 2]
     tri[cr < 0] = tri[cr < 0][:, ::-1]
@@ -758,8 +917,8 @@ CNIG_LIDAR = 'https://centrodedescargas.cnig.es/CentroDescargas/lidar-ign-pnoa'
 
 
 def find_lidar(paths, bbox):
-    """The .laz/.las files (paths: files or directories) whose extent meets bbox (projected metres)."""
-    import laspy
+    """The .laz/.las files (paths: files or directories) whose extent meets bbox (projected metres).
+    None found without laspy (optional: sudo apt install python3-laspy python3-laszip)."""
     files = []
     for p in paths:
         p = os.path.expanduser(p)
@@ -767,6 +926,14 @@ def find_lidar(paths, bbox):
             files += [os.path.join(p, f) for f in sorted(os.listdir(p)) if f.lower().endswith(('.laz', '.las'))]
         elif os.path.isfile(p):
             files.append(p)
+    if not files:
+        return []
+    try:
+        import laspy
+    except ImportError:
+        log('lidar: %d .laz/.las files, not used: reading them needs laspy '
+            '(sudo apt install python3-laspy python3-laszip)' % len(files))
+        return []
     keep = []
     for f in files:
         with laspy.open(f) as r:

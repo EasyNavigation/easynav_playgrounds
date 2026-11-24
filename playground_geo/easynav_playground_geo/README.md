@@ -51,16 +51,13 @@ ROS 2 Rolling, with Gazebo (`gz_sim_vendor`) and the Summit XL of
 [`playground_summit`](../../playground_summit/easynav_playground_summit) in the workspace:
 
 ```bash
+rosdep install --from-paths src --ignore-src -y
 colcon build --packages-up-to easynav_playground_geo
 source install/setup.bash
 ```
 
-The world generator needs, besides the Python packages rosdep installs (numpy, scipy, OpenCV,
-requests, Pillow, pyproj), two that have no rosdep key:
-
-```bash
-pip install --user --break-system-packages mapbox_earcut trimesh "numpy<2"
-```
+The world generator uses only the Python packages rosdep installs (numpy, scipy, OpenCV, requests,
+Pillow, pyproj): it triangulates the roofs and writes the forest's `.glb` itself.
 
 Outside Spain it also uses `navmap_tools` (the NavMap repository) for the Copernicus terrain and
 the Esri imagery. The first launch of a place needs a network connection; the next ones do not.
@@ -174,7 +171,11 @@ python3 $(ros2 pkg prefix easynav_playground_geo_worlds)/lib/easynav_playground_
 ```
 
 The launch prints the same list when it finds no LiDAR for a place in Spain. Reading `.laz` needs
-`pip install --user --break-system-packages laspy lazrs`.
+laspy with its LASzip backend, from apt (without them the LiDAR files are left out, with a message):
+
+```bash
+sudo apt install python3-laspy python3-laszip
+```
 
 ## The robot
 

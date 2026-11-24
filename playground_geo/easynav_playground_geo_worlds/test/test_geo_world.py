@@ -23,7 +23,7 @@ import types
 import pytest
 
 np = pytest.importorskip('numpy')
-for _module in ('cv2', 'trimesh', 'mapbox_earcut', 'scipy', 'pyproj', 'requests', 'PIL'):
+for _module in ('cv2', 'scipy', 'pyproj', 'requests', 'PIL'):
     pytest.importorskip(_module)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -279,6 +279,51 @@ def test_extrude_subtracts_a_courtyard(aw):
     (rv, _, rf), (wv, _, wf) = aw.extrude(outer, [hole], 0.0, 3.0, lambda x, y: np.c_[x, y])
     assert _tri_area(rv, rf).sum() == pytest.approx(400 - 100)
     assert _tri_area(wv, wf).sum() == pytest.approx((80 + 40) * 3.0)   # outside and courtyard walls
+
+
+# Two buildings of the Catastro (Madrid, metres about their centre) whose courtyard touches the
+# outline at a vertex
+TOUCHING = [
+    ([[-19.05, -15.33], [-25.58, -14.86], [-22.88, 1.67], [-16.28, 0.56], [-15.71, 3.96],
+      [-10.79, 3.14], [-9.51, 10.15], [2.97, 11.12], [2.72, 1.5], [13.08, 0.78], [12.11, 12.01],
+      [12.08, 12.34], [21.06, 13.42], [25.79, 14.0], [25.8, 13.74], [28.23, -18.74], [2.77, -16.9],
+      [3.62, -5.17], [0.38, -4.93], [-6.06, -4.29], [-6.9, -9.77], [-17.94, -8.34]],
+     [[-6.06, -4.29], [-5.31, 1.09], [-11.06, 1.53], [-11.96, -3.84]]),
+    ([[-10.05, -10.51], [-9.16, -4.63], [-20.45, -2.93], [-20.91, -2.07], [-17.48, 4.96],
+      [-12.63, 2.55], [-13.28, 1.22], [-14.07, -0.4], [-9.37, -1.14], [-9.19, -0.78], [-6.51, 4.56],
+      [1.91, 0.44], [7.93, 12.72], [10.5, 11.47], [10.37, 11.18], [14.27, 9.34], [16.91, 8.08],
+      [16.87, 7.96], [15.41, 3.36], [15.36, 3.2], [13.32, 4.2], [12.03, 4.83], [11.33, 3.41],
+      [9.59, -0.13], [13.66, -2.15], [11.87, -7.8], [-2.17, -5.69], [-3.08, -11.71], [-3.35, -11.67],
+      [-2.44, -5.76], [-8.19, -4.88], [-9.09, -10.67], [-9.98, -10.52]],
+     [[1.91, 0.44], [0.25, -2.94], [6.23, -3.71], [7.11, -2.01], [9.52, 2.97], [5.24, 5.07],
+      [2.84, -0.0]]),
+]
+
+
+def _roof_covers_exactly(aw, outer, holes):
+    """The roof of extrude(outer, holes) has the footprint's area, faces up, and every triangle is
+    inside the outline and outside the courtyards (no overlap, no gap)."""
+    (rv, _, rf), _ = aw.extrude(outer, holes, 0.0, 3.0, lambda x, y: np.c_[x, y])
+    area = abs(aw.signed_area(outer)) - sum(abs(aw.signed_area(h)) for h in holes)
+    assert _tri_area(rv, rf).sum() == pytest.approx(area, rel=1e-9)
+    normals = np.cross(rv[rf[:, 1]] - rv[rf[:, 0]], rv[rf[:, 2]] - rv[rf[:, 0]])
+    assert (normals[:, 2] > 0).all()
+    for c in rv[rf].mean(axis=1)[:, :2]:
+        assert aw._inside(outer, c) and not any(aw._inside(h, c) for h in holes)
+
+
+@pytest.mark.parametrize('outer, hole', TOUCHING)
+def test_extrude_of_a_courtyard_touching_the_outline(aw, outer, hole):
+    _roof_covers_exactly(aw, np.array(outer), [np.array(hole)])
+
+
+def test_extrude_with_several_courtyards(aw):
+    """A block with a 3 x 3 grid of courtyards, one of them touching the outline at a corner."""
+    outer = np.array([[0, 0], [40, 0], [40, 40], [0, 40]], float)
+    holes = [np.array([[x, y], [x + 6, y], [x + 6, y + 6], [x, y + 6]], float)
+             for x in (4, 17, 30) for y in (4, 17, 30)]
+    holes[-1] = np.array([[34, 34], [40, 40], [30, 38]], float)   # its corner on the outline's
+    _roof_covers_exactly(aw, outer, holes)
 
 
 def test_extrude_of_a_degenerate_footprint_is_none_not_an_error(aw):

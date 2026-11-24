@@ -22,7 +22,7 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch_yaml</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-  <!-- geo_world.py; mapbox_earcut and trimesh have no rosdep key: see the README -->
+  <!-- geo_world.py (the LiDAR, optional, also needs python3-laspy and python3-laszip: see the README) -->
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>

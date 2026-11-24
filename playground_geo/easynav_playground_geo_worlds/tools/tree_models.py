@@ -175,14 +175,73 @@ def resolve(trees, blocked, keep_clear, rng):
     return kept, why
 
 
+def write_glb(path, meshes):
+    """A binary glTF 2.0 file of textured meshes, one node each. `meshes`: [dict(name, v [n, 3],
+    n [n, 3] normals, uv [n, 2] (origin at the bottom left, as COLLADA), f [m, 3], image (a PIL
+    image), mask (True: the texture's alpha cuts the surface at 0.5, as leaves))]."""
+    import io
+    import json
+    import struct
+    blob = bytearray()
+    views, accessors = [], []
+
+    def view(data):
+        while len(blob) % 4:
+            blob.append(0)
+        views.append(dict(buffer=0, byteOffset=len(blob), byteLength=len(data)))
+        blob.extend(data)
+        return len(views) - 1
+
+    def accessor(a, ctype, kind, minmax=False):
+        acc = dict(bufferView=view(a.tobytes()), componentType=ctype, count=len(a), type=kind)
+        if minmax:
+            acc['min'], acc['max'] = a.min(0).tolist(), a.max(0).tolist()
+        accessors.append(acc)
+        return len(accessors) - 1
+
+    nodes, gmeshes, materials, textures, images = [], [], [], [], []
+    for k, m in enumerate(meshes):
+        uv = np.asarray(m['uv'], np.float32).copy()
+        uv[:, 1] = 1.0 - uv[:, 1]          # glTF puts the origin of the texture at its top left
+        attributes = dict(POSITION=accessor(np.asarray(m['v'], np.float32), 5126, 'VEC3', True),
+                          NORMAL=accessor(np.asarray(m['n'], np.float32), 5126, 'VEC3'),
+                          TEXCOORD_0=accessor(uv, 5126, 'VEC2'))
+        indices = accessor(np.asarray(m['f'], np.uint32).ravel(), 5125, 'SCALAR')
+        png = io.BytesIO()
+        m['image'].save(png, format='PNG')
+        images.append(dict(bufferView=view(png.getvalue()), mimeType='image/png'))
+        textures.append(dict(source=k, sampler=0))
+        mat = dict(pbrMetallicRoughness=dict(baseColorTexture=dict(index=k), metallicFactor=0.0,
+                                             roughnessFactor=1.0),
+                   alphaMode='MASK' if m['mask'] else 'OPAQUE', doubleSided=True)
+        if m['mask']:
+            mat['alphaCutoff'] = 0.5
+        materials.append(mat)
+        gmeshes.append(dict(name=m['name'], primitives=[dict(attributes=attributes, indices=indices,
+                                                             material=k, mode=4)]))
+        nodes.append(dict(name=m['name'], mesh=k))
+    while len(blob) % 4:
+        blob.append(0)
+    doc = dict(asset=dict(version='2.0', generator='easynav_playground_geo_worlds'), scene=0,
+               scenes=[dict(nodes=list(range(len(nodes))))], nodes=nodes, meshes=gmeshes,
+               materials=materials, textures=textures, images=images,
+               samplers=[dict(magFilter=9729, minFilter=9987, wrapS=10497, wrapT=10497)],
+               accessors=accessors, bufferViews=views, buffers=[dict(byteLength=len(blob))])
+    js = json.dumps(doc, separators=(',', ':')).encode()
+    js += b' ' * (-len(js) % 4)
+    with open(path, 'wb') as fh:
+        fh.write(struct.pack('<4sII', b'glTF', 2, 12 + 8 + len(js) + 8 + len(blob)))
+        fh.write(struct.pack('<I4s', len(js), b'JSON'))
+        fh.write(js)
+        fh.write(struct.pack('<I4s', len(blob), b'BIN\0'))
+        fh.write(blob)
+
+
 def plant(trees, ground, models, out_glb, rng):
     """Write the forest. `trees`: [(x, y, crown radius, height or None)]; `ground(x, y)`: terrain z.
     Returns (trunk triangles [n, 3, 3] for the collision mesh, the same as 1 m square blocks for the
     NavMap, number of triangles drawn)."""
-    import trimesh
     from PIL import Image
-    from trimesh.visual import TextureVisuals
-    from trimesh.visual.material import PBRMaterial
     parts = {k: load_dae(os.path.join(models, s['dae'])) for k, s in SPECIES.items()}
     zc = {k: crown_base(p) for k, p in parts.items()}
     acc = {}
@@ -209,18 +268,14 @@ def plant(trees, ground, models, out_glb, rng):
         info.append((x, y, rt))
         trunks.append(prism(x, y, z - 0.2, z + TRUNK_COLLISION_HEIGHT, rt, 8))
         blocks.append(prism(x, y, z - 0.2, z + TRUNK_COLLISION_HEIGHT, 0.5, 4, square=True))
-    scene = trimesh.Scene()
-    ntri = 0
+    meshes = []
     for (sp, part), a in acc.items():
         V, N, U, F = (np.concatenate(a[k]) for k in ('v', 'n', 'u', 'f'))
         img = Image.open(os.path.join(models, SPECIES[sp]['leaves' if part == 'Branch' else 'bark'])).convert('RGBA')
-        mat = PBRMaterial(baseColorTexture=img, alphaMode='MASK' if part == 'Branch' else 'OPAQUE',
-                          alphaCutoff=0.5, doubleSided=True, metallicFactor=0.0, roughnessFactor=1.0)
-        m = trimesh.Trimesh(vertices=V, faces=F, vertex_normals=N, process=False,
-                            visual=TextureVisuals(uv=U, material=mat))
-        scene.add_geometry(m, node_name='%s_%s' % (sp, part.lower()), geom_name='%s_%s' % (sp, part.lower()))
-        ntri += len(F)
-    scene.export(out_glb)
+        meshes.append(dict(name='%s_%s' % (sp, part.lower()), v=V, n=N, uv=U, f=F, image=img,
+                           mask=part == 'Branch'))
+    write_glb(out_glb, meshes)
+    ntri = sum(len(m['f']) for m in meshes)
     cat = lambda L: np.concatenate(L) if L else np.zeros((0, 3, 3))   # noqa: E731
     return cat(trunks), cat(blocks), ntri, info
 
