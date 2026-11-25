@@ -245,7 +245,8 @@ colcon test-result --verbose
 Here, `test/test_launch_files.py`: `easynav_geo.launch.yaml` against `geo_sim.launch.py` of the
 worlds package: every argument is forwarded, exists there and has the same default (nothing is
 started). The tests of the simulation and the generator are in the
-[worlds package](../easynav_playground_geo_worlds/README.md#tests).
+[worlds package](../easynav_playground_geo_worlds/README.md#tests). The CI runs both packages'
+tests with and without the optional dependencies of `ign:=true` (see there).
 
 ## Licenses and attribution
 

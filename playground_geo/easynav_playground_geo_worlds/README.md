@@ -83,13 +83,25 @@ colcon test --packages-select easynav_playground_geo_worlds && colcon test-resul
 
 - `test/test_geo_sim_launch.py`: the decisions of `geo_sim.launch.py` without starting anything: the
   generator command of each world, the refused arguments, `ign:=true` stopping without laspy or
-  laszip, the spawn pose (the free spot of the
-  generator, or the ground under the given x, y), `last_world.yaml`.
+  laszip, the spawn pose (the free spot of the generator, or the ground under the given x, y),
+  `last_world.yaml`.
 - `test/test_geo_world.py`: the parts of the generator that work offline: OpenStreetMap buildings
   from a canned answer, the regions and their projections, the building geometry, the cache key of
-  each world.
+  each world, the checks of `--ign` and, with laspy and laszip installed, reading a PNOA-LiDAR
+  `.laz`.
 
 The downloads are not tested here (they need the network and the public services).
+
+The CI ([`.github/workflows/playground_geo.yaml`](../../.github/workflows/playground_geo.yaml), on
+Ubuntu 26.04 and Rolling, with NavMap's `rolling` for `navmap_tools`) runs these tests and those of
+`easynav_playground_geo` twice: without laspy and laszip, where `ign:=true` must stop saying what is
+missing, and with them (`python3-laspy python3-laszip`), where it must start and read the `.laz`.
+`GEO_IGN_DEPS=installed` or `missing` tells the tests which of the two they are in; without it,
+those that depend on it are skipped. To run them as the CI does:
+
+```bash
+GEO_IGN_DEPS=missing colcon test --packages-select easynav_playground_geo_worlds easynav_playground_geo
+```
 
 ## License
 

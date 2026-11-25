@@ -1,0 +1,7 @@
+# What the geo playground needs from outside this repository: navmap_tools (the Copernicus terrain
+# and the Esri imagery), from NavMap, which has no binary packages.
+repositories:
+  NavMap:
+    type: git
+    url: https://github.com/EasyNavigation/NavMap.git
+    version: rolling

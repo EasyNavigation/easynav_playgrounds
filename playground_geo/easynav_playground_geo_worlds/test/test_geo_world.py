@@ -12,8 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""The part of tools/geo_world.py that works outside Spain (OpenStreetMap buildings, UTM frame,
-the choice of region), without network: Overpass is replaced by a canned answer."""
+"""The part of tools/geo_world.py that works without network: OpenStreetMap buildings (Overpass is
+replaced by a canned answer), the UTM frame, the regions, and --ign: its checks and, when laspy and
+laszip are installed, reading a PNOA-LiDAR .laz.
+
+The CI runs it twice: GEO_IGN_DEPS=missing without laspy and laszip, GEO_IGN_DEPS=installed with
+them (sudo apt install python3-laspy python3-laszip)."""
 
 import importlib.util
 import os
@@ -525,3 +529,71 @@ def test_a_world_with_or_without_buildings_is_another_world(aw):
     assert aw.cache_key(key_args(no_buildings=True), 'spain', []) != area
     assert aw.cache_key(key_args(no_trees=True), 'spain', []) != area
     assert aw.cache_key(key_args(radius=300.0), 'spain', []) != area
+
+
+# ------------------------------------------------------------------------------------------- --ign
+IGN_DEPS = os.environ.get('GEO_IGN_DEPS', '')     # set by the CI: installed or missing
+
+
+def run_main(aw, monkeypatch, *args):
+    monkeypatch.setattr(sys, 'argv', ['geo_world.py'] + list(args))
+    return aw.main()
+
+
+def test_ign_outside_spain_stops_before_making_anything(aw, monkeypatch, tmp_path):
+    with pytest.raises(SystemExit, match='Spain only'):
+        run_main(aw, monkeypatch, '--lat', '48.8562', '--lon', '2.2976', '--radius', '50', '--ign',
+                 '--out-dir', str(tmp_path))
+    assert not any(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize('missing', [['laspy', 'laszip'], ['laszip']])
+def test_ign_without_laspy_or_laszip_stops_saying_how_to_install_them(aw, monkeypatch, tmp_path,
+                                                                     missing):
+    monkeypatch.setattr(aw, 'ign_missing', lambda: missing)
+    with pytest.raises(SystemExit, match=' and '.join(missing) + '.*python3-laspy python3-laszip'):
+        run_main(aw, monkeypatch, '--lat', '40.4168', '--lon', '-3.7038', '--radius', '50', '--ign',
+                 '--out-dir', str(tmp_path))
+    assert not any(tmp_path.iterdir())
+
+
+def test_the_lidar_sheets_are_listed_only_with_ign(aw, monkeypatch, tmp_path):
+    with pytest.raises(SystemExit, match='add --ign'):
+        run_main(aw, monkeypatch, '--lat', '40.4168', '--lon', '-3.7038', '--radius', '50',
+                 '--lidar-tiles', '--out-dir', str(tmp_path))
+
+
+@pytest.mark.skipif(IGN_DEPS not in ('installed', 'missing'),
+                    reason='GEO_IGN_DEPS (installed or missing) is set by the CI')
+def test_ign_finds_laspy_and_laszip_as_installed(aw):
+    assert (aw.ign_missing() == []) == (IGN_DEPS == 'installed')
+
+
+def test_ign_reads_a_pnoa_lidar_laz(aw, tmp_path):
+    """A .laz written with LASzip, as the PNOA-LiDAR sheets are: found by its extent and read back
+    inside the area asked for."""
+    if aw.ign_missing():
+        pytest.skip('needs laspy and laszip (python3-laspy python3-laszip)')
+    import laspy
+    rng = np.random.default_rng(3)
+    x0, y0 = 440000.0, 4470000.0
+    xs, ys = x0 + rng.uniform(0, 100, 500), y0 + rng.uniform(0, 100, 500)
+    zs, cs = 650 + rng.uniform(0, 20, 500), rng.choice([2, 3, 5, 6], 500)
+    header = laspy.LasHeader(point_format=6, version='1.4')
+    header.offsets, header.scales = [x0, y0, 600.0], [0.001] * 3
+    las = laspy.LasData(header)
+    las.x, las.y, las.z, las.classification = xs, ys, zs, cs
+    path = str(tmp_path / 'PNOA-2024-MAD-440-4471-H30-NPC02.laz')
+    las.write(path, laz_backend=laspy.LazBackend.Laszip)
+    with laspy.open(path) as r:
+        assert r.header.are_points_compressed
+
+    assert aw.find_lidar([str(tmp_path)], (x0, y0, x0 + 100, y0 + 100)) == [path]
+    assert aw.find_lidar([str(tmp_path)], (x0 + 500, y0, x0 + 600, y0 + 100)) == []
+    x, y, z, c = aw.read_lidar([path], (x0, y0, x0 + 50, y0 + 100))
+    inside = xs <= x0 + 50
+    order, want = np.argsort(x), np.argsort(xs[inside])
+    assert x[order] == pytest.approx(xs[inside][want], abs=1e-3)
+    assert y[order] == pytest.approx(ys[inside][want], abs=1e-3)
+    assert z[order] == pytest.approx(zs[inside][want], abs=1e-3)
+    assert (c[order] == cs[inside][want]).all()
