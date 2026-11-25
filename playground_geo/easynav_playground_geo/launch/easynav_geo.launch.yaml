@@ -15,6 +15,7 @@
 # The world of a real place in Gazebo, with the Summit XL in it:
 #   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=46.0207 lon:=7.7491 radius:=300
 #   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
+#   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area ign:=true
 # Only the simulation (easynav_playground_geo_worlds): no EasyNav configuration yet. See the README.
 
 launch:
@@ -25,7 +26,8 @@ launch:
 - arg: {name: trees, default: 'true', description: 'world:=area: trees (crowns found in the imagery)'}
 - arg: {name: walls, default: 'true', description: 'world:=area: walls, fences and hedges from OpenStreetMap'}
 - arg: {name: roof, default: ortho, description: 'world:=area: ortho, the roofs show the aerial imagery; flat, one colour'}
-- arg: {name: lidar, default: '', description: "Spain only: PNOA-LiDAR .laz/.las file or directory ('' = ~/.ros/easynav_geo/lidar if it has sheets)"}
+- arg: {name: ign, default: 'false', description: 'false: OpenStreetMap buildings and walls, Copernicus terrain, Esri imagery (anywhere). true (Spain only): IGN terrain, PNOA orthophoto, Catastro buildings and PNOA-LiDAR; needs sudo apt install python3-laspy python3-laszip'}
+- arg: {name: lidar, default: '', description: "ign:=true: PNOA-LiDAR .laz/.las file or directory ('' = ~/.ros/easynav_geo/lidar if it has sheets)"}
 - arg: {name: spawn_x, default: '', description: "x of the Summit ('' = a free spot near the origin)"}
 - arg: {name: spawn_y, default: '', description: y of the Summit}
 - arg: {name: spawn_z, default: '', description: "z of the Summit ('' = 0.5 m above the ground there)"}
@@ -42,6 +44,7 @@ launch:
     - {name: trees, value: $(var trees)}
     - {name: walls, value: $(var walls)}
     - {name: roof, value: $(var roof)}
+    - {name: ign, value: $(var ign)}
     - {name: lidar, value: $(var lidar)}
     - {name: spawn_x, value: $(var spawn_x)}
     - {name: spawn_y, value: $(var spawn_y)}

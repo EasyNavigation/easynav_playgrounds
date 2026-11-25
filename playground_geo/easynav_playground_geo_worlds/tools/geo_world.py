@@ -15,17 +15,18 @@
 
 """A Gazebo world of any place: terrain, buildings and trees, from open data.
 
-    geo_world.py --lat 40.28317 --lon -3.81923 --radius 500        (Spain)
-    geo_world.py --lat 48.8562 --lon 2.2976 --radius 400           (anywhere else)
+    geo_world.py --lat 48.8562 --lon 2.2976 --radius 400           (anywhere)
+    geo_world.py --lat 40.28317 --lon -3.81923 --radius 500 --ign  (Spain, with the IGN data)
 
-Spain (--region spain, the default there):
-  terrain     IGN MDT (WCS, 5 m)             -> terrain.obj / terrain.stl, with the PNOA orthophoto
-  buildings   Catastro INSPIRE (WFS)         -> prisms: footprint x (floors above ground x 3.2 m),
-                                                textured facades, roofs from the orthophoto
-Anywhere else (--region world): no LiDAR, and
+By default (anywhere):
   terrain     Copernicus GLO-30 (30 m)       -> smooth: streets are flat, with Esri imagery
   buildings   OpenStreetMap (Overpass)       -> prisms: footprint x height (the `height` tag, else
                                                 `building:levels` x 3.2 m, else a guess by type)
+--ign (Spain only; needs laspy and laszip: sudo apt install python3-laspy python3-laszip):
+  terrain     IGN MDT (WCS, 5 m)             -> terrain.obj / terrain.stl, with the PNOA orthophoto
+  buildings   Catastro INSPIRE (WFS)         -> prisms: footprint x (floors above ground x 3.2 m),
+                                                textured facades, roofs from the orthophoto
+  LiDAR       PNOA-LiDAR sheets, if given    -> finer terrain, real heights of buildings and trees
 Both:
   trees       crowns found in the orthophoto -> trunk + crown (or --dsm: heights from a surface model)
 
@@ -52,6 +53,7 @@ import xml.etree.ElementTree as ET
 
 try:
     import cv2
+    import mapbox_earcut  # noqa: F401
     import numpy as np
     import requests
     from PIL import Image
@@ -59,9 +61,7 @@ try:
     from scipy import ndimage
 except ImportError as e:
     sys.exit('geo_world: %s. Install the dependencies with rosdep (rosdep install --from-paths src '
-             '--ignore-src -y), or: sudo apt install python3-opencv python3-numpy python3-requests '
-             'python3-pil python3-pyproj python3-scipy. Outside Spain it also needs navmap_tools '
-             '(a sourced workspace)' % e)
+             '--ignore-src -y). It also needs navmap_tools (a sourced workspace)' % e)
 
 import tree_models  # noqa: E402  (next to this file)
 
@@ -222,6 +222,22 @@ def in_spain(lat, lon):
     return ((35.0 <= lat <= 44.0 and -7.5 <= lon <= 5.0) or
             (41.7 <= lat <= 44.0 and -9.4 <= lon <= -6.0) or
             (27.0 <= lat <= 29.5 and -19.0 <= lon <= -13.0))
+
+
+IGN_DEPS = 'sudo apt install python3-laspy python3-laszip'
+
+
+def ign_missing():
+    """What --ign needs to read the PNOA-LiDAR and is not installed: [] when laspy reads .laz
+    with its LASzip backend."""
+    try:
+        import laspy
+    except ImportError:
+        return ['laspy', 'laszip']
+    try:
+        return [] if laspy.LazBackend.Laszip.is_available() else ['laszip']
+    except AttributeError:      # a laspy without LazBackend (1.x)
+        return ['laszip']
 
 
 def utm_epsg(lat, lon):
@@ -671,179 +687,19 @@ def signed_area(r):
     return 0.5 * np.sum(x * np.roll(y, -1) - np.roll(x, -1) * y)
 
 
-def _cross(o, a, b):
-    """> 0 when o, a, b turn left (counter-clockwise)."""
-    return (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0])
-
-
-def _locally_inside(pts, poly, i, q):
-    """Whether the point q is inside the polygon's corner at its position i (counter-clockwise)."""
-    a, v, b = pts[poly[i - 1]], pts[poly[i]], pts[poly[(i + 1) % len(poly)]]
-    if _cross(a, v, b) >= 0:                                    # convex corner
-        return _cross(a, v, q) >= 0 and _cross(v, b, q) >= 0
-    return _cross(a, v, q) >= 0 or _cross(v, b, q) >= 0         # reflex corner
-
-
-def _in_triangle(a, b, c, q):
-    """Whether the points q [n, 2] are in the triangle a, b, c or on its sides (either winding)."""
-    d1 = (b[0] - a[0]) * (q[:, 1] - a[1]) - (b[1] - a[1]) * (q[:, 0] - a[0])
-    d2 = (c[0] - b[0]) * (q[:, 1] - b[1]) - (c[1] - b[1]) * (q[:, 0] - b[0])
-    d3 = (a[0] - c[0]) * (q[:, 1] - c[1]) - (a[1] - c[1]) * (q[:, 0] - c[0])
-    return ((d1 >= 0) & (d2 >= 0) & (d3 >= 0)) | ((d1 <= 0) & (d2 <= 0) & (d3 <= 0))
-
-
-def _bridge(pts, poly, hole):
-    """The polygon (positions in pts, counter-clockwise) with a hole (clockwise) joined to it: from
-    the hole's rightmost vertex M, a ray to +x meets the polygon; the vertex P of the polygon that M
-    sees there takes two coincident edges, P to M and back (Eberly): ..., P, M, the hole, M, P, ...
-    A hole the ray finds no polygon for (not inside it) is left out."""
-    m = max(range(len(hole)), key=lambda i: (pts[hole[i], 0], -pts[hole[i], 1]))
-    M = pts[hole[m]]
-    n = len(poly)
-    hit, bp = np.inf, None
-    for i in range(n):
-        a, b = pts[poly[i]], pts[poly[(i + 1) % n]]
-        # the edges the ray leaves the polygon through go up (the inside is on their left)
-        if a[1] <= M[1] <= b[1] and a[1] < b[1]:
-            x = a[0] + (M[1] - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
-            if M[0] <= x < hit:
-                hit = x
-                if x == a[0] and a[1] == M[1]:
-                    bp = i
-                elif x == b[0] and b[1] == M[1]:
-                    bp = (i + 1) % n
-                else:
-                    bp = i if a[0] > b[0] else (i + 1) % n
-    if bp is None:
-        return poly
-    P = pts[poly[bp]]
-    if not (P[0] == hit and P[1] == M[1]):
-        # a vertex of the polygon in the triangle M, I, P hides P from M: the one closest in angle
-        # to the ray (then the nearest) is seen
-        I = np.array([hit, M[1]])
-        q = pts[poly]
-        inside = _in_triangle(M, I, P, q) & (q[:, 0] >= M[0]) & ~((q[:, 0] == M[0]) & (q[:, 1] == M[1]))
-        best = (np.inf, np.inf)
-        for i in np.flatnonzero(inside):
-            dx = q[i, 0] - M[0]
-            tan = abs(q[i, 1] - M[1]) / dx if dx > 0 else np.inf
-            key = (tan, float(np.hypot(dx, q[i, 1] - M[1])))
-            if key < best and _locally_inside(pts, poly, i, M):
-                best, bp = key, i
-    # where P appears more than once (an earlier bridge), the corner that M is in
-    same = [i for i in range(n) if (pts[poly[i]] == pts[poly[bp]]).all()]
-    if len(same) > 1:
-        bp = next((i for i in same if _locally_inside(pts, poly, i, M)), bp)
-    return poly[:bp + 1] + hole[m:] + hole[:m + 1] + poly[bp:]
-
-
-def triangulate(rings):
-    """Triangles [m, 3] (indices into np.concatenate(rings)) covering the polygon whose first ring
-    is its outline and the others its holes, any winding: ear clipping, the holes joined to the
-    outline first, as earcut does. Repeated points and rings without area are skipped."""
-    pts = np.concatenate(rings).astype(float)
-    start = np.cumsum([0] + [len(r) for r in rings])
-
-    def ring(k, ccw):
-        ids = []
-        for i in range(start[k], start[k + 1]):
-            if not ids or (pts[i] != pts[ids[-1]]).any():
-                ids.append(i)
-        while len(ids) > 1 and (pts[ids[0]] == pts[ids[-1]]).all():
-            ids.pop()
-        if len(ids) < 3:
-            return None
-        a = signed_area(pts[ids])
-        if a == 0:
-            return None
-        return ids if (a > 0) == ccw else ids[::-1]
-
-    poly = ring(0, True)
-    if poly is None:
-        return np.zeros((0, 3), np.int64)
-    holes = [h for h in (ring(k, False) for k in range(1, len(rings))) if h is not None]
-    for h in sorted(holes, key=lambda h: -pts[h, 0].max()):
-        poly = _bridge(pts, poly, h)
-
-    # ear clipping on the positions of poly (a vertex of a bridge is there twice)
-    n = len(poly)
-    P = pts[poly]
-    prv = [(i - 1) % n for i in range(n)]
-    nxt = [(i + 1) % n for i in range(n)]
-    alive = np.ones(n, bool)
-    tris = []
-    left, i, misses = n, 0, 0
-
-    def cut(i, emit):
-        nonlocal left, misses
-        a, c = prv[i], nxt[i]
-        if emit:
-            tris.append((poly[a], poly[i], poly[c]))
-        nxt[a], prv[c] = c, a
-        alive[i] = False
-        left -= 1
-        misses = 0
-        return c
-
-    while left > 3:
-        a, c = prv[i], nxt[i]
-        cr = _cross(P[a], P[i], P[c])
-        if cr == 0:                     # no area: the vertex goes, nothing is drawn
-            i = cut(i, False)
-            continue
-        if cr > 0:
-            # an ear: no other vertex in it or on its sides. Another copy of one of its corners (a
-            # bridge, a courtyard touching the outline) is in the way if one of its sides goes into
-            # the ear, or the ear goes into its corner
-            others = np.flatnonzero(alive)
-            others = others[(others != a) & (others != i) & (others != c)]
-            q = P[others]
-            tri = (P[a], P[i], P[c])
-            corner = (((q == tri[0]).all(1)) | ((q == tri[1]).all(1)) | ((q == tri[2]).all(1)))
-            clear = not _in_triangle(*tri, q[~corner]).any()
-            mid = (tri[0] + tri[1] + tri[2]) / 3.0
-            for j in others[corner] if clear else ():
-                k = next(k for k in range(3) if (P[j] == tri[k]).all())
-                X, U, V = tri[k], tri[(k + 1) % 3], tri[(k + 2) % 3]
-                A, B = P[prv[j]], P[nxt[j]]
-                for N in (A, B):
-                    if _cross(X, U, N) > 0 and _cross(X, N, V) > 0:
-                        clear = False
-                if _cross(A, X, B) >= 0:
-                    inside = _cross(A, X, mid) > 0 and _cross(X, B, mid) > 0
-                else:
-                    inside = _cross(A, X, mid) > 0 or _cross(X, B, mid) > 0
-                if inside:
-                    clear = False
-            if clear:
-                i = cut(i, True)
-                continue
-        i = nxt[i]
-        misses += 1
-        if misses > left:
-            # a whole turn without an ear (the outline crosses itself): the most convex corner goes
-            live = np.flatnonzero(alive)
-            crs = [_cross(P[prv[j]], P[j], P[nxt[j]]) for j in live]
-            j = int(live[int(np.argmax(crs))])
-            if max(crs) <= 0:
-                break
-            i = cut(j, True)
-    if left == 3 and _cross(P[prv[i]], P[i], P[nxt[i]]) > 0:
-        tris.append((poly[prv[i]], poly[i], poly[nxt[i]]))
-    return np.array(tris, np.int64).reshape(-1, 3)
-
-
 def extrude(ext, holes, z0, z1, uv_roof, facade_w=6.0, floors=1):
-    """Roof and walls of one footprint. Returns (roof v, uv, f), (wall v, uv, f)."""
+    """Roof (earcut) and walls of one footprint. Returns (roof v, uv, f), (wall v, uv, f)."""
+    import mapbox_earcut as earcut
     if signed_area(ext) < 0:
         ext = ext[::-1]
     holes = [h[::-1] if signed_area(h) > 0 else h for h in holes]
     rings = [ext] + holes
     pts = np.concatenate(rings)
-    tri = triangulate(rings)
+    ends = np.cumsum([len(r) for r in rings]).astype(np.uint32)
+    tri = earcut.triangulate_float64(pts, ends).reshape(-1, 3).astype(np.int64)
     if len(tri) == 0:
         return None
-    # roofs face up whatever the order of the triangles
+    # roofs face up whatever the order earcut returned
     cr = np.cross(np.c_[pts[tri[:, 1]] - pts[tri[:, 0]], np.zeros(len(tri))],
                   np.c_[pts[tri[:, 2]] - pts[tri[:, 0]], np.zeros(len(tri))])[:, 2]
     tri[cr < 0] = tri[cr < 0][:, ::-1]
@@ -917,8 +773,8 @@ CNIG_LIDAR = 'https://centrodedescargas.cnig.es/CentroDescargas/lidar-ign-pnoa'
 
 
 def find_lidar(paths, bbox):
-    """The .laz/.las files (paths: files or directories) whose extent meets bbox (projected metres).
-    None found without laspy (optional: sudo apt install python3-laspy python3-laszip)."""
+    """The .laz/.las files (paths: files or directories) whose extent meets bbox (projected metres)."""
+    import laspy
     files = []
     for p in paths:
         p = os.path.expanduser(p)
@@ -926,14 +782,6 @@ def find_lidar(paths, bbox):
             files += [os.path.join(p, f) for f in sorted(os.listdir(p)) if f.lower().endswith(('.laz', '.las'))]
         elif os.path.isfile(p):
             files.append(p)
-    if not files:
-        return []
-    try:
-        import laspy
-    except ImportError:
-        log('lidar: %d .laz/.las files, not used: reading them needs laspy '
-            '(sudo apt install python3-laspy python3-laszip)' % len(files))
-        return []
     keep = []
     for f in files:
         with laspy.open(f) as r:
@@ -1260,9 +1108,10 @@ def main():
     ap.add_argument('--lat', type=float, required=True)
     ap.add_argument('--lon', type=float, required=True)
     ap.add_argument('--radius', type=float, default=500.0, help='half-side of the square area, m')
-    ap.add_argument('--region', choices=('auto', 'spain', 'world'), default='auto',
-                    help='spain: IGN terrain, Catastro buildings, LiDAR; world: Copernicus terrain and '
-                    'OpenStreetMap buildings (auto: by the coordinates)')
+    ap.add_argument('--ign', action='store_true',
+                    help='Spain only: IGN terrain, PNOA orthophoto, Catastro buildings and PNOA-LiDAR '
+                    '(needs laspy and laszip: %s). Without it: Copernicus terrain, Esri imagery and '
+                    'OpenStreetMap buildings' % IGN_DEPS)
     ap.add_argument('--name', default='', help='directory name (default area_<lat>_<lon>_<radius>)')
     ap.add_argument('--out-dir', default='~/.ros/easynav_geo/worlds')
     ap.add_argument('--terrain-res', type=float, default=0.0,
@@ -1297,14 +1146,24 @@ def main():
     ap.add_argument('--force', action='store_true')
     a = ap.parse_args()
 
-    region = a.region if a.region != 'auto' else ('spain' if in_spain(a.lat, a.lon) else 'world')
+    region = 'spain' if a.ign else 'world'
+    if a.lidar_tiles and not a.ign:
+        sys.exit('geo_world: --lidar-tiles lists the PNOA-LiDAR sheets of --ign: add --ign')
+    if a.ign:
+        if not in_spain(a.lat, a.lon):
+            sys.exit('geo_world: --ign: the IGN data covers Spain only, and %.5f, %.5f is not in Spain'
+                     % (a.lat, a.lon))
+        missing = [] if a.lidar_tiles else ign_missing()   # listing the sheets reads none
+        if missing:
+            sys.exit('geo_world: --ign needs %s, which %s not installed: %s' % (
+                ' and '.join(missing), 'is' if len(missing) == 1 else 'are', IGN_DEPS))
     name = a.name or ('terrain' if a.no_buildings and a.no_trees and a.no_walls else 'area') + \
-        '_%.5f_%.5f_%d' % (a.lat, a.lon, a.radius)
+        '_%.5f_%.5f_%d%s' % (a.lat, a.lon, a.radius, '_ign' if a.ign else '')
     out = os.path.join(os.path.expanduser(a.out_dir), name)
     lidar_paths = [] if (a.no_lidar or region == 'world') else (
         a.lidar if a.lidar is not None else [LIDAR_DIR])
     if region == 'world' and a.lidar:
-        log('--lidar ignored: the PNOA-LiDAR covers Spain only')
+        log('--lidar ignored: the PNOA-LiDAR is read only with --ign')
     lidar_id = []
     for p_ in lidar_paths:
         p_ = os.path.expanduser(p_)
@@ -1348,7 +1207,7 @@ def main():
     enu_to_ll = Transformer.from_crs(aeqd, CRS.from_epsg(4326), always_xy=True)
     ll_back = Transformer.from_crs(CRS.from_epsg(frame.epsg), aeqd, always_xy=True)   # projected -> ENU
     log('area %.5f, %.5f, half-side %.0f m, EPSG:%d, %s' % (
-        a.lat, a.lon, half, frame.epsg, 'Spain' if region == 'spain' else 'outside Spain'))
+        a.lat, a.lon, half, frame.epsg, 'IGN data' if a.ign else 'OpenStreetMap'))
     if a.lidar_tiles:
         sq = [to_proj.transform(sx_ * half, sy_ * half) for sx_, sy_ in ((-1, -1), (1, 1))]
         have = find_lidar_names(lidar_paths)

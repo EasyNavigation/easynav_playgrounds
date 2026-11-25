@@ -7,7 +7,9 @@ SPDX-License-Identifier: Apache-2.0
 
 The geo simulation: the Gazebo world of any real place, made from its coordinates and a radius from
 open data, with the Robotnik Summit XL in it. It needs Gazebo Harmonic or newer (`ros_gz_sim`,
-`ros_gz_bridge`), the Summit XL of `playground_summit`, and outside Spain `navmap_tools`; not EasyNav.
+`ros_gz_bridge`), the Summit XL of `playground_summit` and `navmap_tools`; not EasyNav. `ign:=true`
+(the IGN data of Spain, optional) also needs laspy and laszip (`sudo apt install python3-laspy
+python3-laszip`): see the playground's README.
 
 How to use it, its arguments, the data sources and their licenses are in the README of the
 playground, [`easynav_playground_geo`](../easynav_playground_geo/README.md). This one is about what
@@ -16,6 +18,7 @@ is inside.
 ```bash
 ros2 launch easynav_playground_geo_worlds geo_sim.launch.py lat:=46.0207 lon:=7.7491 radius:=300
 ros2 launch easynav_playground_geo_worlds geo_sim.launch.py lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
+ros2 launch easynav_playground_geo_worlds geo_sim.launch.py lat:=40.4168 lon:=-3.7038 radius:=250 world:=area ign:=true
 ```
 
 (the same as `easynav_geo.launch.yaml` of the playground, which only forwards its arguments here).
@@ -31,7 +34,7 @@ ros2 launch easynav_playground_geo_worlds geo_sim.launch.py lat:=40.4168 lon:=-3
 ## What is generated, and where
 
 Each world goes to its own directory under `~/.ros/easynav_geo/worlds/`, named
-`terrain_<lat>_<lon>_<radius>` or `area_<lat>_<lon>_<radius>`:
+`terrain_<lat>_<lon>_<radius>` or `area_<lat>_<lon>_<radius>`, with `_ign` at the end for `ign:=true`:
 
 | File | What it is |
 |---|---|
@@ -43,8 +46,8 @@ Each world goes to its own directory under `~/.ros/easynav_geo/worlds/`, named
 | `navmap_ground.stl`, `navmap_holes.stl` | The same split in two: the ground alone, and what stands on it |
 | `world.yaml` | The place, the elevation of the origin, the spawn spot, and how many buildings, walls and trees there are |
 
-Other caches: the OpenStreetMap answers in `~/.cache/easynav_geo/overpass/`, and outside Spain the
-terrain and imagery tiles in `navmap_tools`' own cache. To make a world again from scratch, remove
+Other caches: the OpenStreetMap answers in `~/.cache/easynav_geo/overpass/`, and (without
+`ign:=true`) the terrain and imagery tiles in `navmap_tools`' own cache. To make a world again from scratch, remove
 its directory.
 
 
@@ -57,6 +60,7 @@ its directory.
 G=$(ros2 pkg prefix easynav_playground_geo_worlds)/lib/easynav_playground_geo_worlds/geo_world.py
 python3 $G --lat 48.8562 --lon 2.2976 --radius 400                 # Paris, with everything
 python3 $G --lat 46.0207 --lon 7.7491 --radius 300 --no-buildings --no-trees --no-walls
+python3 $G --lat 40.4168 --lon -3.7038 --radius 250 --ign        # Madrid, with the IGN data
 ```
 
 Among them: `--terrain-res` and `--navmap-res` (mesh spacing), `--ortho-ppm` (imagery pixels per
@@ -78,7 +82,8 @@ colcon test --packages-select easynav_playground_geo_worlds && colcon test-resul
 ```
 
 - `test/test_geo_sim_launch.py`: the decisions of `geo_sim.launch.py` without starting anything: the
-  generator command of each world, the refused arguments, the spawn pose (the free spot of the
+  generator command of each world, the refused arguments, `ign:=true` stopping without laspy or
+  laszip, the spawn pose (the free spot of the
   generator, or the ground under the given x, y), `last_world.yaml`.
 - `test/test_geo_world.py`: the parts of the generator that work offline: OpenStreetMap buildings
   from a canned answer, the regions and their projections, the building geometry, the cache key of

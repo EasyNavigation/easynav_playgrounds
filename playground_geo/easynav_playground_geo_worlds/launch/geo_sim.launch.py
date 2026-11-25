@@ -20,6 +20,11 @@ geo_world.py makes the world of lat, lon, radius from open data (once: it is kep
 * world:=terrain: the terrain and its aerial imagery.
 * world:=area: the same, plus buildings, walls and trees.
 
+By default the data is open data of anywhere: Copernicus terrain, Esri imagery and OpenStreetMap
+buildings and walls. In Spain, ign:=true takes the IGN terrain, the PNOA orthophoto, the Catastro
+buildings and the PNOA-LiDAR instead: it needs laspy and laszip (sudo apt install python3-laspy
+python3-laszip), and stops saying so when they are not installed.
+
 What was launched is written to ~/.ros/easynav_geo/last_world.yaml (the place and the mesh of the
 world), so that an application can make its map of the same place.
 """
@@ -44,6 +49,29 @@ LAST_WORLD = '~/.ros/easynav_geo/last_world.yaml'
 DEFAULT_PLACE = ('40.284796', '-3.821407', '300')   # the URJC campus at Fuenlabrada (Madrid)
 MAX_RADIUS = 2000.0
 EGL_NVIDIA = '/usr/share/glvnd/egl_vendor.d/10_nvidia.json'
+IGN_DEPS = 'sudo apt install python3-laspy python3-laszip'
+
+
+def ign_missing():
+    """What ign:=true needs to read the PNOA-LiDAR and is not installed: [] when laspy reads .laz
+    with its LASzip backend."""
+    try:
+        import laspy
+    except ImportError:
+        return ['laspy', 'laszip']
+    try:
+        return [] if laspy.LazBackend.Laszip.is_available() else ['laszip']
+    except AttributeError:      # a laspy without LazBackend (1.x)
+        return ['laszip']
+
+
+def check_ign(ign, missing):
+    """Raise RuntimeError if ign:=true and `missing` (from ign_missing()) is not empty."""
+    if ign == 'true' and missing:
+        raise RuntimeError('ign:=true needs %s, which %s not installed: %s (or launch with '
+                           'ign:=false, OpenStreetMap data)' % (
+                               ' and '.join(missing), 'is' if len(missing) == 1 else 'are',
+                               IGN_DEPS))
 
 
 def check_place(lat, lon, radius):
@@ -66,7 +94,7 @@ def generator_command(tool, template, cfg):
     world = cfg['world']
     if world not in WORLDS:
         raise RuntimeError("world:=%s must be one of: %s" % (world, ', '.join(WORLDS)))
-    for k in ('trees', 'walls'):
+    for k in ('trees', 'walls', 'ign'):
         if cfg[k] not in ('true', 'false'):
             raise RuntimeError('%s:=%s must be true or false' % (k, cfg[k]))
     if cfg['roof'] not in ('ortho', 'flat'):
@@ -82,8 +110,13 @@ def generator_command(tool, template, cfg):
             cmd.append('--no-trees')
         if cfg['walls'] == 'false':
             cmd.append('--no-walls')
-    if cfg['lidar']:
-        cmd += ['--lidar', os.path.expanduser(cfg['lidar'])]
+    if cfg['ign'] == 'true':
+        cmd.append('--ign')
+        if cfg['lidar']:
+            cmd += ['--lidar', os.path.expanduser(cfg['lidar'])]
+    elif cfg['lidar']:
+        raise RuntimeError('lidar:=%s needs ign:=true (the PNOA-LiDAR goes with the IGN data)' %
+                           cfg['lidar'])
     return cmd
 
 
@@ -185,8 +218,13 @@ def generate_launch_description():
         DeclareLaunchArgument('roof', default_value='ortho',
                               description='world:=area: ortho, the roofs show the aerial '
                                           'imagery; flat, one colour'),
+        DeclareLaunchArgument('ign', default_value='false',
+                              description='false: OpenStreetMap buildings and walls, Copernicus '
+                                          'terrain, Esri imagery (anywhere). true (Spain only): '
+                                          'IGN terrain, PNOA orthophoto, Catastro buildings and '
+                                          'PNOA-LiDAR; needs %s' % IGN_DEPS),
         DeclareLaunchArgument('lidar', default_value='',
-                              description="Spain only: PNOA-LiDAR .laz/.las file or directory "
+                              description="ign:=true: PNOA-LiDAR .laz/.las file or directory "
                                           "('' = ~/.ros/easynav_geo/lidar if it has sheets): finer "
                                           'terrain, real heights of buildings and trees'),
         DeclareLaunchArgument('spawn_x', default_value='',
@@ -212,7 +250,7 @@ def setup(context):
         return LaunchConfiguration(name).perform(context)
 
     cfg = {k: arg(k) for k in ('world', 'lat', 'lon', 'radius', 'trees', 'walls', 'roof',
-                               'lidar')}
+                               'ign', 'lidar')}
     given = {k: arg(k) for k in ('spawn_x', 'spawn_y', 'spawn_z')}
     gpu = arg('gpu')
     if gpu not in ('auto', 'nvidia', 'none'):
@@ -221,6 +259,7 @@ def setup(context):
     tool = os.path.join(get_package_prefix('easynav_playground_geo_worlds'), 'lib',
                         'easynav_playground_geo_worlds', 'geo_world.py')
     cmd = generator_command(tool, os.path.join(here, 'worlds', 'geo.world.in'), cfg)
+    check_ign(cfg['ign'], ign_missing() if cfg['ign'] == 'true' else [])
     print('geo_sim.launch.py: %s world of %s, %s, radius %s m (made once, then reused; the first '
           'time takes from seconds to minutes)' % (cfg['world'], cfg['lat'], cfg['lon'],
                                                    cfg['radius']), flush=True)

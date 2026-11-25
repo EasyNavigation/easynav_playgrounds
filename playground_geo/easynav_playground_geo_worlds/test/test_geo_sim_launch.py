@@ -39,7 +39,7 @@ def gs():
 
 def cfg(**kw):
     c = {'world': 'terrain', 'lat': '40.4168', 'lon': '-3.7038', 'radius': '250',
-         'trees': 'true', 'walls': 'true', 'roof': 'ortho', 'lidar': ''}
+         'trees': 'true', 'walls': 'true', 'roof': 'ortho', 'ign': 'false', 'lidar': ''}
     c.update(kw)
     return c
 
@@ -64,15 +64,55 @@ def test_the_area_has_buildings_and_what_is_asked_for(gs):
     assert cmd[cmd.index('--roof') + 1] == 'flat'
 
 
-def test_the_lidar_goes_to_the_generator_in_both_worlds(gs):
+def test_by_default_the_data_is_openstreetmap_not_ign(gs):
     for world in gs.WORLDS:
-        cmd = gs.generator_command('t', 'w', cfg(world=world, lidar='/data/laz'))
-        assert cmd[cmd.index('--lidar') + 1] == '/data/laz'
+        assert '--ign' not in gs.generator_command('t', 'w', cfg(world=world))
+
+
+def test_ign_and_its_lidar_go_to_the_generator_in_both_worlds(gs):
+    for world in gs.WORLDS:
+        cmd = gs.generator_command('t', 'w', cfg(world=world, ign='true', lidar='/data/laz'))
+        assert '--ign' in cmd and cmd[cmd.index('--lidar') + 1] == '/data/laz'
+
+
+def test_the_lidar_without_ign_is_refused(gs):
+    with pytest.raises(RuntimeError, match='ign:=true'):
+        gs.generator_command('t', 'w', cfg(lidar='/data/laz'))
+
+
+def test_ign_stops_the_launch_without_laspy_or_laszip(gs):
+    gs.check_ign('true', [])
+    gs.check_ign('false', ['laspy', 'laszip'])
+    for missing in (['laspy', 'laszip'], ['laszip']):
+        with pytest.raises(RuntimeError, match='python3-laspy python3-laszip'):
+            gs.check_ign('true', missing)
+
+
+def test_what_ign_misses_is_what_cannot_be_imported(gs, monkeypatch):
+    import builtins
+    import types
+    real = builtins.__import__
+
+    def fake(laspy):
+        monkeypatch.setattr(builtins, '__import__', lambda name, *a, **k: (
+            laspy if laspy is not None else (_ for _ in ()).throw(ImportError(name)))
+            if name == 'laspy' else real(name, *a, **k))
+
+    fake(None)
+    assert gs.ign_missing() == ['laspy', 'laszip']
+
+    def laszip(ok):
+        return types.SimpleNamespace(LazBackend=types.SimpleNamespace(
+            Laszip=types.SimpleNamespace(is_available=lambda: ok)))
+    fake(laszip(False))
+    assert gs.ign_missing() == ['laszip']
+    fake(laszip(True))
+    assert gs.ign_missing() == []
 
 
 @pytest.mark.parametrize('bad', [
     {'world': 'city'}, {'lat': 'north'}, {'lat': '91'}, {'lon': '-200'}, {'radius': '0'},
-    {'radius': '5000'}, {'trees': 'yes'}, {'walls': '1'}, {'roof': 'red'},
+    {'radius': '5000'}, {'trees': 'yes'}, {'walls': '1'}, {'roof': 'red'}, {'ign': 'yes'},
 ])
 def test_bad_arguments_say_what_is_wrong(gs, bad):
     with pytest.raises(RuntimeError):

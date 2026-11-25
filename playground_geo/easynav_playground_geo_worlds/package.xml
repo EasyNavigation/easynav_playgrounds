@@ -15,14 +15,16 @@
   <exec_depend>easynav_playground_summit_description</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>
-  <!-- outside Spain: the Copernicus terrain and the Esri imagery (navmap_tools.geo) -->
+  <!-- the Copernicus terrain and the Esri imagery (navmap_tools.geo) -->
   <exec_depend>navmap_tools</exec_depend>
 
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>launch_yaml</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
-  <!-- geo_world.py (the LiDAR, optional, also needs python3-laspy and python3-laszip: see the README) -->
+  <!-- geo_world.py. ign:=true (optional, the IGN data of Spain) also needs python3-laspy and
+       python3-laszip, which have no rosdep key: see the README -->
+  <exec_depend>python3-mapbox-earcut-pip</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>

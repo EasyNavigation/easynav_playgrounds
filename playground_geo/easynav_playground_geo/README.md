@@ -8,7 +8,8 @@ SPDX-License-Identifier: Apache-2.0
 The world of **any real place** in Gazebo, from its coordinates and a radius, with the Robotnik
 Summit XL in it. The terrain comes from public elevation models and the ground is covered with
 aerial imagery; on request, the buildings, walls and trees of the place are added too. Everything is
-made from open data, once per place, and kept for the next launch.
+made from open data (OpenStreetMap and others, anywhere; in Spain, optionally, the IGN's: see
+[`ign`](#optional-the-ign-data-of-spain-ign-true)), once per place, and kept for the next launch.
 
 ```bash
 # the terrain of a place and its aerial imagery (fast): Zermatt, in the Alps
@@ -16,6 +17,9 @@ ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=46.0207 lon:=7.7
 
 # the same plus buildings, walls and trees: the centre of Madrid
 ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
+
+# the same with the IGN data of Spain (needs sudo apt install python3-laspy python3-laszip)
+ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area ign:=true
 ```
 
 It is **only the simulation** for now: the world and the robot, with no EasyNav configuration yet.
@@ -27,7 +31,7 @@ its own: the robot is the Summit XL of `playground_summit`.
 
 | Package | Contents | Depends on |
 | --- | --- | --- |
-| [`easynav_playground_geo_worlds`](../easynav_playground_geo_worlds) | The simulation: the world generator, the world template, the tree models, and the launcher that makes the world, starts Gazebo and spawns the Summit | Gazebo, ros_gz, the Summit XL of `playground_summit`, `navmap_tools` (outside Spain); not EasyNav |
+| [`easynav_playground_geo_worlds`](../easynav_playground_geo_worlds) | The simulation: the world generator, the world template, the tree models, and the launcher that makes the world, starts Gazebo and spawns the Summit | Gazebo, ros_gz, the Summit XL of `playground_summit`, `navmap_tools`; not EasyNav. Optional: laspy and laszip for `ign:=true` |
 | `easynav_playground_geo` (this one) | The launcher above, `easynav_geo.launch.yaml`; the EasyNav configurations will go here | `easynav_playground_geo_worlds` |
 | (none) | The robot: `easynav_playground_summit_description` | |
 
@@ -38,7 +42,7 @@ its own: the robot is the Summit XL of `playground_summit`.
 - [Arguments](#arguments)
 - [Where the data comes from](#where-the-data-comes-from)
 - [Making a map of the same place](#making-a-map-of-the-same-place)
-- [More precision in Spain: PNOA-LiDAR](#more-precision-in-spain-pnoa-lidar)
+- [Optional: the IGN data of Spain (`ign:=true`)](#optional-the-ign-data-of-spain-ign-true)
 - [The robot](#the-robot)
 - [GPU](#gpu)
 - [Limits](#limits)
@@ -56,25 +60,27 @@ colcon build --packages-up-to easynav_playground_geo
 source install/setup.bash
 ```
 
-The world generator uses only the Python packages rosdep installs (numpy, scipy, OpenCV, requests,
-Pillow, pyproj): it triangulates the roofs and writes the forest's `.glb` itself.
-
-Outside Spain it also uses `navmap_tools` (the NavMap repository) for the Copernicus terrain and
+rosdep installs everything the default (OpenStreetMap) worlds need: the Python packages of the
+world generator (numpy, scipy, OpenCV, requests, Pillow, pyproj and `mapbox_earcut`, which
+triangulates the roofs) and `navmap_tools` (the NavMap repository), for the Copernicus terrain and
 the Esri imagery. The first launch of a place needs a network connection; the next ones do not.
+
+`ign:=true` (Spain only) needs two more packages, which rosdep does not install; see
+[below](#optional-the-ign-data-of-spain-ign-true).
 
 ## The two worlds
 
 | `world:=` | What is in it | First launch of a place |
 |---|---|---|
 | `terrain` (default) | The terrain with the aerial imagery draped on it | Downloads the elevation model and the imagery: seconds to a minute |
-| `area` | The terrain, plus buildings, walls, fences and hedges, and trees | Also queries the cadastre / OpenStreetMap, builds every building and plants the trees: minutes |
+| `area` | The terrain, plus buildings, walls, fences and hedges, and trees | Also queries OpenStreetMap (and the cadastre with `ign:=true`), builds every building and plants the trees: minutes |
 
 Both are the same generator (`tools/geo_world.py` of `easynav_playground_geo_worlds`): `terrain` is
 `area` without buildings, walls and trees. Each world is made once and kept in
 `~/.ros/easynav_geo/worlds/` (what goes there: the
 [worlds package](../easynav_playground_geo_worlds/README.md#what-is-generated-and-where)); launching
 the same place with the same options again starts Gazebo at once. Changing any option (the radius,
-`trees`, the LiDAR files...) makes another world, which is generated the first time.
+`trees`, `ign`, the LiDAR files...) makes another world, which is generated the first time.
 
 The world is a square of side `2 x radius` centred on `lat`, `lon`. That point is the origin of the
 world: x points east, y north, and z = 0 is the ground there. The world declares those coordinates
@@ -91,31 +97,33 @@ longitude and altitude of the place.
 | `trees` | `true` | `world:=area`: plant trees where the imagery shows crowns |
 | `walls` | `true` | `world:=area`: walls, fences and hedges from OpenStreetMap |
 | `roof` | `ortho` | `world:=area`: `ortho`, the roofs show the aerial imagery; `flat`, one colour per roof |
-| `lidar` | `''` | Spain only: a PNOA-LiDAR `.laz`/`.las` file or a directory of them; `''` uses `~/.ros/easynav_geo/lidar/` if it has any (see [below](#more-precision-in-spain-pnoa-lidar)) |
+| `ign` | `false` | `false`: OpenStreetMap buildings and walls, Copernicus terrain, Esri imagery, anywhere. `true` (Spain only): IGN terrain, PNOA orthophoto, Catastro buildings and PNOA-LiDAR; needs laspy and laszip, and stops saying so without them (see [below](#optional-the-ign-data-of-spain-ign-true)) |
+| `lidar` | `''` | `ign:=true` only: a PNOA-LiDAR `.laz`/`.las` file or a directory of them; `''` uses `~/.ros/easynav_geo/lidar/` if it has any |
 | `spawn_x`, `spawn_y` | `''` | Where the Summit starts, in the world frame (m). `''`: the free spot nearest to the origin that the generator found (not inside or next to a building, wall or tree) |
 | `spawn_z` | `''` | Height of the Summit at the start. `''`: 0.5 m above the ground there (the highest surface, so on a roof if `spawn_x`/`spawn_y` fall on a building) |
 | `gui` | `true` | Gazebo GUI; `false` runs headless |
 | `gpu` | `auto` | `auto`, `nvidia` or `none` (see [GPU](#gpu)) |
 
-A wrong value (an unknown `world`, a latitude out of range, a radius of 0...) stops the launch with
-a message saying which argument is wrong, before anything is downloaded.
+A wrong value (an unknown `world`, a latitude out of range, a radius of 0, `lidar` without
+`ign:=true`, `ign:=true` outside Spain...) stops the launch with a message saying which argument is
+wrong, before anything is downloaded.
 
 ## Where the data comes from
 
-The generator chooses the sources by where the place is:
+`ign` chooses the sources:
 
-| | Spain | Anywhere else |
+| | `ign:=false` (default, anywhere) | `ign:=true` (Spain only) |
 |---|---|---|
-| Terrain | IGN MDT, 5 m grid (PNOA-LiDAR ground where you have the files) | Copernicus GLO-30, 30 m grid: smooth, streets come out flat |
-| Imagery | PNOA orthophoto (IGN) | Esri World Imagery |
-| Buildings | Catastro (cadastre): footprint x floors above ground x 3.2 m | OpenStreetMap: footprint x `height`, else `building:levels` x 3.2 m, else a guess by type |
+| Terrain | Copernicus GLO-30, 30 m grid: smooth, streets come out flat | IGN MDT, 5 m grid (PNOA-LiDAR ground where you have the files) |
+| Imagery | Esri World Imagery | PNOA orthophoto (IGN) |
+| Buildings | OpenStreetMap: footprint x `height`, else `building:levels` x 3.2 m, else a guess by type | Catastro (cadastre): footprint x floors above ground x 3.2 m |
 | Walls, fences, hedges | OpenStreetMap | OpenStreetMap |
-| Trees | Crowns found in the orthophoto (or in the LiDAR) | Crowns found in the imagery |
+| Trees | Crowns found in the imagery | Crowns found in the orthophoto (or in the LiDAR) |
 
-The Basque Country and Navarra have their own cadastres, which the generator does not read: there
-the buildings also come from OpenStreetMap.
+With `ign:=true`, the Basque Country and Navarra have their own cadastres, which the generator does
+not read: there the buildings come from OpenStreetMap too.
 
-Outside Spain the buildings are only as good as OpenStreetMap's tags: where they lack `height` and
+OpenStreetMap buildings are only as good as their tags: where they lack `height` and
 `building:levels`, the height is a guess. Buildings are plain prisms with a facade texture and,
 with `roof:=ortho`, the imagery on the roof. Open structures (a tower on legs, a canopy) come out
 as a solid block over their footprint. A building taller than 60 floors (192 m) is cut to that
@@ -150,7 +158,24 @@ and `latitude`, `longitude` and `ground_elevation` tie that frame to the GPS. Fo
 of the place can be made from `navmap.stl` with `navmap_tools`. Nothing in this playground depends
 on which application does it.
 
-## More precision in Spain: PNOA-LiDAR
+## Optional: the IGN data of Spain (`ign:=true`)
+
+In Spain, `ign:=true` makes the world from the data of the Instituto Geográfico Nacional and the
+Catastro instead (see [Where the data comes from](#where-the-data-comes-from)): a finer terrain
+(5 m instead of 30 m), the PNOA orthophoto and the cadastre's buildings, and, if you have them, the
+PNOA-LiDAR point clouds of the place.
+
+It needs **laspy** (reads the LiDAR's `.las`/`.laz` files) and **laszip** (its backend that
+decompresses `.laz`). They are not in rosdep, so `rosdep install` does not install them; from apt:
+
+```bash
+sudo apt install python3-laspy python3-laszip
+```
+
+`ign:=true` checks them before anything is made: if either is missing, the launch stops and says
+which one and the command above. `ign:=false` (the default) never uses them.
+
+### PNOA-LiDAR
 
 The IGN terrain is a 5 m grid and the cadastre gives floors, not heights. With the classified
 PNOA-LiDAR point cloud of the area (`ORT-CLA` `.laz` sheets of 2 x 2 km), the generator uses:
@@ -167,15 +192,11 @@ a place needs (and marks those already there):
 
 ```bash
 python3 $(ros2 pkg prefix easynav_playground_geo_worlds)/lib/easynav_playground_geo_worlds/geo_world.py \
-  --lat 40.4168 --lon -3.7038 --radius 250 --lidar-tiles
+  --lat 40.4168 --lon -3.7038 --radius 250 --ign --lidar-tiles
 ```
 
-The launch prints the same list when it finds no LiDAR for a place in Spain. Reading `.laz` needs
-laspy with its LASzip backend, from apt (without them the LiDAR files are left out, with a message):
-
-```bash
-sudo apt install python3-laspy python3-laszip
-```
+With `ign:=true`, the launch prints the same list when it finds no LiDAR for the place, and makes
+the world without it.
 
 ## The robot
 
@@ -205,7 +226,8 @@ they are already set). `gpu:=nvidia` forces it, `gpu:=none` turns it off. Check 
 - **Size.** The radius is capped at 2000 m. Large `world:=area` worlds are heavy for Gazebo (a city
   centre has thousands of buildings and trees); start with a radius of a few hundred metres.
 - **Land only.** The sea is not simulated here; see [`playground_marine`](../../playground_marine).
-- **LiDAR** is Spain only (and untested in the Canary Islands, which use their own CRS).
+- **`ign:=true` and LiDAR** are Spain only (the LiDAR untested in the Canary Islands, which use
+  their own CRS).
 
 ## Tests
 
@@ -229,8 +251,8 @@ or the worlds themselves, credit them as their terms ask:
 
 | Data | Provider | Terms |
 |---|---|---|
-| MDT, PNOA orthophoto, PNOA-LiDAR (Spain) | © Instituto Geográfico Nacional | CC BY 4.0 |
-| Buildings (Spain) | Dirección General del Catastro | The cadastre's reuse conditions, with attribution |
 | Buildings, walls, fences, hedges | © OpenStreetMap contributors | ODbL 1.0 |
-| Terrain outside Spain | Copernicus DEM GLO-30, © DLR e.V. and © Airbus Defence and Space GmbH, provided under COPERNICUS by the European Union and ESA | Copernicus DEM licence |
-| Imagery outside Spain | Esri World Imagery (Esri, Maxar, Earthstar Geographics and the GIS User Community) | Esri's terms of use |
+| Terrain (`ign:=false`) | Copernicus DEM GLO-30, © DLR e.V. and © Airbus Defence and Space GmbH, provided under COPERNICUS by the European Union and ESA | Copernicus DEM licence |
+| Imagery (`ign:=false`) | Esri World Imagery (Esri, Maxar, Earthstar Geographics and the GIS User Community) | Esri's terms of use |
+| MDT, PNOA orthophoto, PNOA-LiDAR (`ign:=true`) | © Instituto Geográfico Nacional | CC BY 4.0 |
+| Buildings (`ign:=true`) | Dirección General del Catastro | The cadastre's reuse conditions, with attribution |
