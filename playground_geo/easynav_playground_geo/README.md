@@ -65,6 +65,12 @@ world generator (numpy, scipy, OpenCV, requests, Pillow, pyproj and `mapbox_earc
 triangulates the roofs) and `navmap_tools` (the NavMap repository), for the Copernicus terrain and
 the Esri imagery. The first launch of a place needs a network connection; the next ones do not.
 
+The trees are written as one `.glb` mesh. On Ubuntu 24.04 the generator writes it itself
+(`write_glb` in `tools/tree_models.py`), because trimesh, the usual library for it, is not in that
+release's apt: only `pip` has it. From Ubuntu 26.04, whose apt has `python3-trimesh`, trimesh
+becomes a dependency instead (rosdep needs a `python3-trimesh` key for that; today it only has
+`python3-trimesh-pip`, which installs it with `pip`).
+
 `ign:=true` (Spain only) needs two more packages, which rosdep does not install; see
 [below](#optional-the-ign-data-of-spain-ign-true).
 
