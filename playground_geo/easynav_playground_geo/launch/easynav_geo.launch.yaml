@@ -1,0 +1,53 @@
+# Copyright 2026 José Miguel Guerrero
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The world of a real place in Gazebo, with the Summit XL in it:
+#   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=46.0207 lon:=7.7491 radius:=300
+#   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area
+#   ros2 launch easynav_playground_geo easynav_geo.launch.yaml lat:=40.4168 lon:=-3.7038 radius:=250 world:=area ign:=true
+# Only the simulation (easynav_playground_geo_worlds): no EasyNav configuration yet. See the README.
+
+launch:
+- arg: {name: world, default: terrain, description: 'terrain: the terrain and its imagery. area: plus buildings, walls and trees'}
+- arg: {name: lat, default: '40.284796', description: 'Latitude of the centre (WGS84 degrees): the origin of the world'}
+- arg: {name: lon, default: '-3.821407', description: Longitude of the centre (WGS84 degrees)}
+- arg: {name: radius, default: '300', description: 'Half side of the square world, m (up to 2000)'}
+- arg: {name: trees, default: 'true', description: 'world:=area: trees (crowns found in the imagery)'}
+- arg: {name: walls, default: 'true', description: 'world:=area: walls, fences and hedges from OpenStreetMap'}
+- arg: {name: roof, default: ortho, description: 'world:=area: ortho, the roofs show the aerial imagery; flat, one colour'}
+- arg: {name: ign, default: 'false', description: 'false: OpenStreetMap buildings and walls, Copernicus terrain, Esri imagery (anywhere). true (Spain only): IGN terrain, PNOA orthophoto, Catastro buildings and PNOA-LiDAR; needs sudo apt install python3-laspy python3-laszip'}
+- arg: {name: lidar, default: '', description: "ign:=true: PNOA-LiDAR .laz/.las file or directory ('' = ~/.ros/easynav_geo/lidar if it has sheets)"}
+- arg: {name: spawn_x, default: '', description: "x of the Summit ('' = a free spot near the origin)"}
+- arg: {name: spawn_y, default: '', description: y of the Summit}
+- arg: {name: spawn_z, default: '', description: "z of the Summit ('' = 0.5 m above the ground there)"}
+- arg: {name: gui, default: 'true', description: Gazebo GUI}
+- arg: {name: gpu, default: auto, description: 'auto, nvidia or none: render on the NVIDIA GPU of a laptop'}
+
+- include:
+    file: $(find-pkg-share easynav_playground_geo_worlds)/launch/geo_sim.launch.py
+    arg:
+    - {name: world, value: $(var world)}
+    - {name: lat, value: $(var lat)}
+    - {name: lon, value: $(var lon)}
+    - {name: radius, value: $(var radius)}
+    - {name: trees, value: $(var trees)}
+    - {name: walls, value: $(var walls)}
+    - {name: roof, value: $(var roof)}
+    - {name: ign, value: $(var ign)}
+    - {name: lidar, value: $(var lidar)}
+    - {name: spawn_x, value: $(var spawn_x)}
+    - {name: spawn_y, value: $(var spawn_y)}
+    - {name: spawn_z, value: $(var spawn_z)}
+    - {name: gui, value: $(var gui)}
+    - {name: gpu, value: $(var gpu)}

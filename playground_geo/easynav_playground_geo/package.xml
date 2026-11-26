@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>easynav_playground_geo</name>
+  <version>0.1.0</version>
+  <description>Playground for real places: one launch, with world:=terrain or world:=area, starts the geo simulation (the Gazebo world of any place, from its coordinates, with the Summit XL in it). It carries no EasyNav configuration yet.</description>
+  <maintainer email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</maintainer>
+  <license file="LICENSE">Apache-2.0</license>
+  <author email="josemiguel.guerrero@urjc.es">José Miguel Guerrero</author>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>easynav_playground_geo_worlds</exec_depend>
+  <!-- the robot: the Summit XL of playground_summit (this playground has no description of its own) -->
+  <exec_depend>easynav_playground_summit_description</exec_depend>
+  <exec_depend>launch_yaml</exec_depend>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-yaml</test_depend>
+  <test_depend>launch</test_depend>
+  <test_depend>easynav_playground_geo_worlds</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
