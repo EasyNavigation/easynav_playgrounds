@@ -89,9 +89,9 @@ def test_ign_stops_the_launch_without_laspy_or_laszip(gs):
 
 
 @pytest.mark.skipif(os.environ.get('GEO_IGN_DEPS') not in ('installed', 'missing'),
-                    reason='GEO_IGN_DEPS (installed or missing) is set by the CI')
+                    reason='GEO_IGN_DEPS (installed or missing) is not set')
 def test_ign_starts_only_with_laspy_and_laszip_installed(gs):
-    """The CI runs this with and without python3-laspy and python3-laszip."""
+    """GEO_IGN_DEPS says whether python3-laspy and python3-laszip are installed."""
     missing = gs.ign_missing()
     if os.environ['GEO_IGN_DEPS'] == 'installed':
         assert missing == []

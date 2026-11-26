@@ -92,12 +92,10 @@ colcon test --packages-select easynav_playground_geo_worlds && colcon test-resul
 
 The downloads are not tested here (they need the network and the public services).
 
-The CI ([`.github/workflows/playground_geo.yaml`](../../.github/workflows/playground_geo.yaml), on
-Ubuntu 26.04 and Rolling, with NavMap's `rolling` for `navmap_tools`) runs these tests and those of
-`easynav_playground_geo` twice: without laspy and laszip, where `ign:=true` must stop saying what is
-missing, and with them (`python3-laspy python3-laszip`), where it must start and read the `.laz`.
-`GEO_IGN_DEPS=installed` or `missing` tells the tests which of the two they are in; without it,
-those that depend on it are skipped. To run them as the CI does:
+The optional dependencies of `ign:=true` are checked in both cases: without laspy and laszip,
+`ign:=true` must stop saying what is missing, and with them (`python3-laspy python3-laszip`), it
+must start and read the `.laz`. `GEO_IGN_DEPS=installed` or `missing` tells the tests which of the
+two the machine is in; without it, those that depend on it are skipped:
 
 ```bash
 GEO_IGN_DEPS=missing colcon test --packages-select easynav_playground_geo_worlds easynav_playground_geo

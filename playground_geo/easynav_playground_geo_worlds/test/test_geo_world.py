@@ -16,8 +16,8 @@
 replaced by a canned answer), the UTM frame, the regions, and --ign: its checks and, when laspy and
 laszip are installed, reading a PNOA-LiDAR .laz.
 
-The CI runs it twice: GEO_IGN_DEPS=missing without laspy and laszip, GEO_IGN_DEPS=installed with
-them (sudo apt install python3-laspy python3-laszip)."""
+GEO_IGN_DEPS says whether laspy and laszip are installed (installed or missing; sudo apt install
+python3-laspy python3-laszip); without it, the test that depends on it is skipped."""
 
 import importlib.util
 import os
@@ -532,7 +532,7 @@ def test_a_world_with_or_without_buildings_is_another_world(aw):
 
 
 # ------------------------------------------------------------------------------------------- --ign
-IGN_DEPS = os.environ.get('GEO_IGN_DEPS', '')     # set by the CI: installed or missing
+IGN_DEPS = os.environ.get('GEO_IGN_DEPS', '')     # installed or missing
 
 
 def run_main(aw, monkeypatch, *args):
@@ -564,7 +564,7 @@ def test_the_lidar_sheets_are_listed_only_with_ign(aw, monkeypatch, tmp_path):
 
 
 @pytest.mark.skipif(IGN_DEPS not in ('installed', 'missing'),
-                    reason='GEO_IGN_DEPS (installed or missing) is set by the CI')
+                    reason='GEO_IGN_DEPS (installed or missing) is not set')
 def test_ign_finds_laspy_and_laszip_as_installed(aw):
     assert (aw.ign_missing() == []) == (IGN_DEPS == 'installed')
 
